@@ -13,11 +13,11 @@ import (
 
 var DB *gorm.DB
 
-func initAuth(db *gorm.DB) {
+func InitAuth(db *gorm.DB) {
 	DB = db
 }
 
-func signUp(c *gin.Context) {
+func SignUp(c *gin.Context) {
 	var user models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -39,7 +39,7 @@ func signUp(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User created successfully"})
 }
 
-func login(c *gin.Context) {
+func Login(c *gin.Context) {
 	var credentials struct {
 		Email    string `json:"email" binding:"required"`
 		Password string `json:"password" binding:"required"`
@@ -64,7 +64,7 @@ func login(c *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"role":    user.Role,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"exp":     time.Now().Add(time.Hour * 12).Unix(),
 	})
 	tokenStr, _ := token.SignedString(middleware.JWT_SECRET)
 
