@@ -21,6 +21,13 @@ func SignUp(c *gin.Context) {
 	var user models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var existUser models.User
+	if err := DB.Where("email = ?", user.Email).First(&existUser).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already Resigtered"})
+		return
 	}
 
 	// hash the password
