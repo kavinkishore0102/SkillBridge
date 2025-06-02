@@ -2,16 +2,26 @@ package router
 
 import (
 	"SkillBridge/controller"
+	"SkillBridge/middleware"
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRouter() *gin.Engine {
-	r := gin.Default()
+	router := gin.Default()
 
-	api := r.Group("/api")
+	// Public routes
+	router.POST("/api/signup", controller.SignUp)
+	router.POST("/api/login", controller.Login)
+
+	// ✅ Protected routes
+	authorized := router.Group("/api")
+	authorized.Use(middleware.AuthMiddleware())
 	{
-		api.POST("/signup", controller.SignUp)
-		api.POST("/login", controller.Login)
+		authorized.GET("/profile", controller.GetProfile)
+		authorized.PUT("/profile", controller.UpdateProfile)
 	}
-	return r
+
+	// Start the server
+	router.Run(":8080")
+	return router
 }
