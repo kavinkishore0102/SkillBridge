@@ -29,25 +29,34 @@ func GetProfile(c *gin.Context) {
 }
 
 func UpdateProfile(c *gin.Context) {
-	userID, exits := c.Get("userID")
-	if !exits {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User already exists"})
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
 		return
 	}
 
 	var input struct {
-		Name string `json:"name"`
-		Role string `json:"role"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
+		Role  string `json:"role"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Check if the new email already exists for another user
+	var existing models.User
+	if err := DB.Where("email = ? AND id != ?", input.Email, userID).First(&existing).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is already in use"})
+		return
+	}
+
 	if err := DB.Model(&models.User{}).Where("id = ?", userID).
-		Updates(models.User{Name: input.Name, Role: input.Role}).Error; err != nil {
+		Updates(models.User{Name: input.Name, Email: input.Email, Role: input.Role}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
 }
