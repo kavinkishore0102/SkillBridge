@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var JWT_SECRET = []byte("your-secret-key")
+var JWT_SECRET = []byte("devsecret123")
 
 // To handle the JWT tokens
 func JWTMiddleware() gin.HandlerFunc {
@@ -57,9 +57,12 @@ func AuthMiddleware() gin.HandlerFunc {
 			return JWT_SECRET, nil
 		})
 
-		if err != nil || !token.Valid {
+		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
+		}
+		if !token.Valid {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token-1"})
 		}
 
 		// Extract claims

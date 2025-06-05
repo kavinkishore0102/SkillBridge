@@ -20,30 +20,49 @@ func InitAuth(db *gorm.DB) {
 func SignUp(c *gin.Context) {
 	var user models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
+	// Check existing user
 	var existUser models.User
 	if err := DB.Where("email = ?", user.Email).First(&existUser).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already Resigtered"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already registered"})
 		return
 	}
 
-	// hash the password
+	// Hash password (REMOVED LOGGING)
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash the Password"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
+		return
+	}
+	user.Password = hashedPassword
+
+	// Create user
+	if err := DB.Create(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
 		return
 	}
 
-	user.Password = hashedPassword
-	if err := DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create user in DB"})
+	// Generate token with role claim (FIXED)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"role":    user.Role, // ADDED ROLE
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	})
+
+	// Use consistent secret (FIXED)
+	tokenString, err := token.SignedString(middleware.JWT_SECRET)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
 		return
 	}
-	//Status ok
-	c.JSON(http.StatusOK, gin.H{"message": "User created successfully"})
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User created successfully",
+		"token":   tokenString,
+	})
 }
 
 func Login(c *gin.Context) {
@@ -52,19 +71,22 @@ func Login(c *gin.Context) {
 		Password string `json:"password" binding:"required"`
 	}
 
-	err := c.ShouldBindJSON(&credentials)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := c.ShouldBindJSON(&credentials); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
 	var user models.User
+	// Generic error for security (FIXED)
+	errMsg := "Incorrect email or password"
+
 	if err := DB.Where("email = ?", credentials.Email).First(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not Find user in DB"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": errMsg}) // Changed to 401
 		return
 	}
+
 	if !utils.CheckPassword(user.Password, credentials.Password) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Incorrect email or password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": errMsg}) // Consistent error
 		return
 	}
 
@@ -73,7 +95,12 @@ func Login(c *gin.Context) {
 		"role":    user.Role,
 		"exp":     time.Now().Add(time.Hour * 12).Unix(),
 	})
-	tokenStr, _ := token.SignedString(middleware.JWT_SECRET)
+
+	tokenStr, err := token.SignedString(middleware.JWT_SECRET)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Login failed"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"token": tokenStr})
 }
