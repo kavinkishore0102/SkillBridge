@@ -2,16 +2,20 @@ package utils
 
 import (
 	"golang.org/x/crypto/bcrypt"
+	"log"
 )
 
-// HashPassword hashes the given plain password.
 func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	return string(bytes), err
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedBytes), nil // REMOVED LOGGING
 }
 
-// CheckPassword compares hashed and plain passwords.
-func CheckPassword(hashedPassword, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	return err == nil
+func CheckPassword(storedHash, plainPassword string) bool {
+	log.Printf("storedHash: %s", storedHash)
+	log.Printf("plainPassword: %s", plainPassword)
+	err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(plainPassword))
+	return err == nil // REMOVED LOGGING
 }
