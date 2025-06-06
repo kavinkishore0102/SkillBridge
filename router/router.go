@@ -20,6 +20,7 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/profile", controller.GetProfile)
 		authorized.PUT("/profile", controller.UpdateProfile)
 	}
+	authorized.POST("/projects", controller.PostProject)
 
 	// Start the server
 	router.Run(":8080")

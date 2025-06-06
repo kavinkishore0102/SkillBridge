@@ -77,3 +77,22 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 	}
 }
+
+func AuthorizeRoles(allowedRoles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role, exists := c.Get("role")
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Role not found in token"})
+			return
+		}
+
+		for _, r := range allowedRoles {
+			if role == r {
+				c.Next()
+				return
+			}
+		}
+
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Unauthorized access"})
+	}
+}
