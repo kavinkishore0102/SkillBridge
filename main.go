@@ -10,6 +10,7 @@ import (
 func main() {
 	db := config.ConnectDB()
 	db.AutoMigrate(&models.User{})
+	db.AutoMigrate(&models.Project{})
 
 	controller.InitAuth(db)
 
