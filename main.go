@@ -11,7 +11,7 @@ func main() {
 	db := config.ConnectDB()
 	db.AutoMigrate(&models.User{})
 	db.AutoMigrate(&models.Project{})
-
+	db.AutoMigrate(&models.Application{})
 	controller.InitAuth(db)
 
 	r := router.SetupRouter()
