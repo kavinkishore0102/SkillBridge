@@ -29,6 +29,8 @@ func SetupRouter() *gin.Engine {
 
 		// 🧑‍🎓 Only 'student' can apply to a project
 		authorized.POST("/projects/apply", middleware.AuthorizeRoles("student"), controller.ApplyToProject)
+		authorized.GET("/projects/:id/applicants", middleware.AuthorizeRoles("company"), controller.GetProjectApplicants)
+
 	}
 
 	// Start server

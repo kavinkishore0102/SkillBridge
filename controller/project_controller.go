@@ -3,6 +3,7 @@ package controller
 import (
 	"SkillBridge/models"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 )
 
@@ -47,10 +48,8 @@ func ApplyToProject(c *gin.Context) {
 		return
 	}
 
-	input := struct {
-		ProjectID uint
-	}{
-		ProjectID: 1, // 🔁 Replace with any valid project ID from your DB
+	var input struct {
+		ProjectID uint `json:"project_id"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -76,4 +75,24 @@ func ApplyToProject(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Project applied successfully", "application": application})
+}
+
+func GetProjectApplicants(c *gin.Context) {
+	projectID := c.Param("id")
+	companyID := c.GetUint("userID")
+
+	var project models.Project
+	log.Printf("id = ? AND company_id = ?", projectID, companyID)
+	if err := DB.Where("id = ? AND company_id = ?", projectID, companyID).First(&project).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found or not owned by you"})
+		return
+	}
+
+	var applications []models.Application
+	if err := DB.Preload("Student").Where("project_id = ?", projectID).Find(&applications).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch applicants"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"applicants": applications})
 }
