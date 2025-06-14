@@ -31,6 +31,10 @@ func SetupRouter() *gin.Engine {
 		authorized.POST("/projects/apply", middleware.AuthorizeRoles("student"), controller.ApplyToProject)
 		authorized.GET("/projects/:id/applicants", middleware.AuthorizeRoles("company"), controller.GetProjectApplicants)
 
+		authorized.POST("/projects/:id/submit", middleware.AuthorizeRoles("student"), controller.SubmitProject)
+		authorized.GET("/projects/:id/submissions", middleware.AuthorizeRoles("company"), controller.GetProjectSubmissions)
+		authorized.POST("/submissions/:id/review", middleware.AuthorizeRoles("company"), controller.ReviewSubmission)
+
 	}
 
 	// Start server
