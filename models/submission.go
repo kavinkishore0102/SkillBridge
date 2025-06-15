@@ -14,5 +14,6 @@ type Submission struct {
 	Status      string    `json:"status"`
 	Feedback    string    `json:"feedback"`
 	Student     User      `gorm:"foreignKey:StudentID"`
+	Project     Project   `gorm:"foreignKey:ProjectID"`
 	SubmittedAt time.Time `json:"submitted_at"`
 }

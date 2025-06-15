@@ -3,6 +3,7 @@ package controller
 import (
 	"SkillBridge/models"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"strconv"
@@ -182,8 +183,8 @@ func ReviewSubmission(c *gin.Context) {
 	}
 
 	var input struct {
-		Status   string `json:"status"`   // accepted, rejected, changes_requested
-		Feedback string `json:"feedback"` // optional
+		Status   string `json:"status"`
+		Feedback string `json:"feedback"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -218,4 +219,66 @@ func ReviewSubmission(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Submission reviewed", "submission": submission})
+}
+
+func GetMySubmissions(c *gin.Context) {
+	studentID := c.GetUint("userID")
+
+	var submissions []models.Submission
+	if err := DB.Preload("Project", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "title")
+	}).Where("student_id = ?", studentID).Find(&submissions).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch submissions"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"submissions": submissions})
+}
+
+func GetCompanyApplications(c *gin.Context) {
+	companyID := c.GetUint("userID")
+
+	var applications []models.Application
+
+	err := DB.Preload("Student").
+		Preload("Project").
+		Joins("JOIN projects ON projects.id = applications.project_id").
+		Where("projects.company_id = ?", companyID).
+		Find(&applications).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch applications"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"applications": applications})
+}
+
+func GetMyApplications(c *gin.Context) {
+	studentID := c.GetUint("userID")
+
+	var applications []models.Application
+	if err := DB.Preload("Project").Where("student_id = ?", studentID).Find(&applications).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch applications"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"applications": applications})
+}
+
+func GetGuideSubmissions(c *gin.Context) {
+	guideID := c.GetUint("userID")
+
+	var submissions []models.Submission
+	err := DB.Preload("Student").
+		Joins("JOIN projects ON submissions.project_id = projects.id").
+		Where("projects.guide_id = ?", guideID).
+		Find(&submissions).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch submissions for guide"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"submissions": submissions})
 }
