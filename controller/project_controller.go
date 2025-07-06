@@ -2,6 +2,7 @@ package controller
 
 import (
 	"SkillBridge/models"
+	"SkillBridge/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
@@ -183,33 +184,21 @@ func ReviewSubmission(c *gin.Context) {
 	}
 
 	var input struct {
-		Status   string `json:"status"`
-		Feedback string `json:"feedback"`
+		Status   string `json:"status"`   // accepted, rejected, changes_requested
+		Feedback string `json:"feedback"` // optional
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Optional: Validate status input
-	validStatuses := map[string]bool{
-		"accepted":          true,
-		"rejected":          true,
-		"changes_requested": true,
-	}
-	if !validStatuses[input.Status] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status value"})
-		return
-	}
-
-	// Find the submission
 	var submission models.Submission
 	if err := DB.First(&submission, submissionID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Submission not found"})
 		return
 	}
 
-	// Update the fields
+	// Update submission fields
 	submission.Status = input.Status
 	submission.Feedback = input.Feedback
 
@@ -218,7 +207,17 @@ func ReviewSubmission(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Submission reviewed", "submission": submission})
+	// 🔔 Send notification to the student
+	err = utils.CreateNotification(DB, submission.StudentID, "Your submission was reviewed: "+input.Status)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send notification"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Submission reviewed",
+		"submission": submission,
+	})
 }
 
 func GetMySubmissions(c *gin.Context) {
@@ -281,4 +280,61 @@ func GetGuideSubmissions(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"submissions": submissions})
+}
+
+// controller/project_controller.go
+func DeleteProject(c *gin.Context) {
+	projectID := c.Param("id")
+	companyID := c.GetUint("userID") // from JWT
+	role := c.GetString("role")
+
+	if role != "company" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var project models.Project
+	if err := DB.Where("id = ? AND company_id = ?", projectID, companyID).First(&project).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found or unauthorized"})
+		return
+	}
+
+	if err := DB.Delete(&project).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete project"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Project deleted successfully"})
+}
+
+func WithdrawApplication(c *gin.Context) {
+	studentID := c.GetUint("userID")
+	role := c.GetString("role")
+
+	if role != "student" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	projectIDParam := c.Param("id")
+	projectID, err := strconv.ParseUint(projectIDParam, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		return
+	}
+
+	// Find the application
+	var application models.Application
+	if err := DB.Where("student_id = ? AND project_id = ?", studentID, projectID).First(&application).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Application not found"})
+		return
+	}
+
+	// Delete the application
+	if err := DB.Delete(&application).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to withdraw application"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Application withdrawn successfully"})
 }

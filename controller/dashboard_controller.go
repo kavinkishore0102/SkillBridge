@@ -97,3 +97,17 @@ func CompanyDashboard(c *gin.Context) {
 		"total_submissions": totalSubmissions,
 	})
 }
+
+func AdminDashboard(c *gin.Context) {
+	var studentCount, companyCount, projectCount int64
+
+	DB.Model(&models.User{}).Where("role = ?", "student").Count(&studentCount)
+	DB.Model(&models.User{}).Where("role = ?", "company").Count(&companyCount)
+	DB.Model(&models.Project{}).Count(&projectCount)
+
+	c.JSON(http.StatusOK, gin.H{
+		"total_students":  studentCount,
+		"total_companies": companyCount,
+		"total_projects":  projectCount,
+	})
+}

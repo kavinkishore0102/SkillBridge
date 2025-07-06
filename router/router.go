@@ -20,14 +20,20 @@ func SetupRouter() *gin.Engine {
 
 	// ✅ Protected routes
 	authorized := router.Group("/api")
+	// router/router.go
+	authorized.GET("/dashboard/admin", middleware.AuthorizeRoles("admin"), controller.AdminDashboard)
+
 	authorized.Use(middleware.AuthMiddleware())
 	{
 		// Profile routes (for all roles)
 		authorized.GET("/profile", controller.GetProfile)
 		authorized.PUT("/profile", controller.UpdateProfile)
+		router.GET("/api/company/:id", controller.GetPublicCompanyProfile)
 
 		// 📤 Only 'company' can post projects
 		authorized.POST("/projects", middleware.AuthorizeRoles("company"), controller.PostProject)
+		authorized.DELETE("/projects/:id", middleware.AuthorizeRoles("company"), controller.DeleteProject)
+		authorized.DELETE("/projects/:id/apply", middleware.AuthorizeRoles("student"), controller.WithdrawApplication)
 
 		// 🧑‍🎓 Only 'student' can apply to a project
 		authorized.POST("/projects/apply", middleware.AuthorizeRoles("student"), controller.ApplyToProject)
