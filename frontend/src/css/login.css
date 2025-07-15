@@ -68,9 +68,19 @@ body, html {
 }
 .social-icons {
   display: flex;
-  justify-content: space-around;
-  font-size: 20px;
-  color: #444;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+#google-signin-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Remove the old custom Google button styles */
+.google-btn {
+  display: none;
 }
 
 .social-icons i {
