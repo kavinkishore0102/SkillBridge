@@ -98,6 +98,75 @@ func CompanyDashboard(c *gin.Context) {
 	})
 }
 
+func GuideDashboard(c *gin.Context) {
+	// Ensure only guide users access this endpoint
+	role := c.GetString("role")
+	if role != "guide" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// Get logged-in guide ID from JWT middleware
+	guideID := c.GetUint("userID")
+	if guideID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid guide ID"})
+		return
+	}
+
+	// Declare stats variables
+	var assignedProjects int64
+	var totalSubmissions int64
+	var pendingReviews int64
+	var completedReviews int64
+
+	// Count projects assigned to this guide
+	if err := DB.
+		Model(&models.Project{}).
+		Where("guide_id = ?", guideID).
+		Count(&assignedProjects).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count assigned projects"})
+		return
+	}
+
+	// Count total submissions for projects assigned to this guide
+	if err := DB.
+		Table("submissions").
+		Joins("JOIN projects ON submissions.project_id = projects.id").
+		Where("projects.guide_id = ?", guideID).
+		Count(&totalSubmissions).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count submissions"})
+		return
+	}
+
+	// Count pending reviews (submissions not yet reviewed)
+	if err := DB.
+		Table("submissions").
+		Joins("JOIN projects ON submissions.project_id = projects.id").
+		Where("projects.guide_id = ? AND submissions.status = ?", guideID, "pending").
+		Count(&pendingReviews).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count pending reviews"})
+		return
+	}
+
+	// Count completed reviews (submissions that are accepted or rejected)
+	if err := DB.
+		Table("submissions").
+		Joins("JOIN projects ON submissions.project_id = projects.id").
+		Where("projects.guide_id = ? AND submissions.status IN ?", guideID, []string{"accepted", "rejected"}).
+		Count(&completedReviews).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count completed reviews"})
+		return
+	}
+
+	// Return the dashboard stats
+	c.JSON(http.StatusOK, gin.H{
+		"assigned_projects":  assignedProjects,
+		"total_submissions":  totalSubmissions,
+		"pending_reviews":    pendingReviews,
+		"completed_reviews":  completedReviews,
+	})
+}
+
 func AdminDashboard(c *gin.Context) {
 	var studentCount, companyCount, projectCount int64
 

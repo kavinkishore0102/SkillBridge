@@ -120,6 +120,11 @@ export const dashboardAPI = {
     return await apiCall('/dashboard/company', 'GET', null, token);
   },
 
+  // Get guide dashboard
+  getGuideDashboard: async (token) => {
+    return await apiCall('/dashboard/guide', 'GET', null, token);
+  },
+
   // Get my applications (student)
   getMyApplications: async (token) => {
     return await apiCall('/my-applications', 'GET', null, token);

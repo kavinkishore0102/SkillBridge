@@ -1,11 +1,8 @@
 import './css/signup.css';
 
 import { useNavigate } from 'react-router-dom';
-<<<<<<< Updated upstream
-=======
-import { useEffect, useState } from 'react';
-import { authAPI, utils } from './utils/api';
->>>>>>> Stashed changes
+import { useEffect, useState } from 'react'; // Keep this line from Stashed changes
+import { authAPI, utils } from './utils/api'; // Keep this line from Stashed changes
   
 function Signup() {
     const navigate = useNavigate();
@@ -22,8 +19,7 @@ function Signup() {
     const [googleUserInfo, setGoogleUserInfo] = useState(null);
     const [selectedGoogleRole, setSelectedGoogleRole] = useState('student');
 
-<<<<<<< Updated upstream
-=======
+    // Keep this entire block from Stashed changes
     useEffect(() => {
         // Check if user is already logged in
         if (utils.isLoggedIn()) {
@@ -213,7 +209,6 @@ function Signup() {
         }
     };
 
->>>>>>> Stashed changes
   return (
     <div className="signup-container">
       <div className="signup-left">
@@ -279,9 +274,11 @@ function Signup() {
         </form>
         <p className="social-text">or signup with</p>
         <div className="social-icons">
-          <i className="fab fa-facebook-f"></i>
-          <i className="fab fa-google-plus-g"></i>
-          <i className="fab fa-linkedin-in"></i>
+          {/* This div is where the Google button will be rendered by the GIS library */}
+          <div id="google-signup-button"></div>
+          {/* <i className="fab fa-facebook-f"></i> */} {/* Assuming you might remove these if only using Google */}
+          {/* <i className="fab fa-google-plus-g"></i> */}
+          {/* <i className="fab fa-linkedin-in"></i> */}
         </div>
       </div>
 

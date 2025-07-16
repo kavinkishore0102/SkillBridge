@@ -1,14 +1,11 @@
 import './css/login.css';
 import { useNavigate } from 'react-router-dom';
-<<<<<<< Updated upstream
-function Login() {
-    const navigate = useNavigate();
-=======
-import { useEffect, useState } from 'react';
-import { authAPI, utils } from './utils/api';
+import { useEffect, useState } from 'react'; // Keep this line from Stashed changes
+import { authAPI, utils } from './utils/api'; // Keep this line from Stashed changes
 
 function Login() {
     const navigate = useNavigate();
+    // Keep these useState declarations from Stashed changes
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -16,9 +13,17 @@ function Login() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // Keep this entire useEffect block from Stashed changes
     useEffect(() => {
         // Check if user is already logged in
-        if (utils.isLoggedIn()) {
+        const isLoggedIn = utils.isLoggedIn();
+        const token = utils.getToken();
+        const user = utils.getUser();
+        
+        console.log('Login page - Auth check:', { isLoggedIn, token, user });
+        
+        if (isLoggedIn && token && user) {
+            console.log('User already logged in, redirecting to dashboard');
             navigate('/dashboard');
         }
 
@@ -60,7 +65,7 @@ function Login() {
         }
     }, [navigate]);
 
-    // Handle form input changes
+    // Keep these handler functions from Stashed changes
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -69,7 +74,6 @@ function Login() {
         }));
     };
 
-    // Handle traditional login form submission
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -94,7 +98,6 @@ function Login() {
         }
     };
 
-    // Handle Google OAuth response
     const handleCredentialResponse = (response) => {
         // Parse the JWT token
         const userInfo = parseJwt(response.credential);
@@ -107,12 +110,12 @@ function Login() {
                 name: userInfo.name,
                 email: userInfo.email,
                 picture: userInfo.picture,
-                role: 'student' // Default role for Google OAuth users
+                role: 'student' // Default role for Google OAuth users (might need adjustment based on backend)
             });
             
             // For now, we'll use a mock token for Google OAuth
             // In production, you'd send this to your backend to verify and get a proper JWT
-            utils.saveToken('google-oauth-token');
+            utils.saveToken('google-oauth-token'); // This token will need to be properly handled by your backend
             
             // Redirect to dashboard
             navigate('/dashboard');
@@ -132,7 +135,7 @@ function Login() {
             return null;
         }
     };
->>>>>>> Stashed changes
+
   return (
     <div className="container">
       <div className="login-form">
@@ -163,9 +166,12 @@ function Login() {
         </form>
         <p className="social-text">or signin with</p>
         <div className="social-icons">
-          <i className="fab fa-facebook-f"></i>
-          <i className="fab fa-google-plus-g"></i>
-          <i className="fab fa-linkedin-in"></i>
+          {/* This div is where the Google button will be rendered by the GIS library */}
+          <div id="google-signin-button"></div>
+          {/* You can uncomment or adjust these if you still plan to use other social icons */}
+          {/* <i className="fab fa-facebook-f"></i> */}
+          {/* <i className="fab fa-google-plus-g"></i> */}
+          {/* <i className="fab fa-linkedin-in"></i> */}
         </div>
       </div>
       <div className="login-info">
