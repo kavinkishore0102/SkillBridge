@@ -1,11 +1,31 @@
 import './css/signup.css';
+
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react'; // Keep this line from Stashed changes
+import { authAPI, utils } from './utils/api'; // Keep this line from Stashed changes
   
 function Signup() {
     const navigate = useNavigate();
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        role: 'student' // Default role
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [showGoogleRoleModal, setShowGoogleRoleModal] = useState(false);
+    const [googleUserInfo, setGoogleUserInfo] = useState(null);
+    const [selectedGoogleRole, setSelectedGoogleRole] = useState('student');
 
+    // Keep this entire block from Stashed changes
     useEffect(() => {
+        // Check if user is already logged in
+        if (utils.isLoggedIn()) {
+            navigate('/dashboard');
+        }
+
         // Initialize Google Sign-In when component mounts
         const initializeGoogleSignIn = () => {
             if (window.google && window.google.accounts) {
@@ -42,25 +62,137 @@ function Signup() {
                 }
             }, 100);
         }
-    }, []);
+    }, [navigate]);
 
+    // Handle form input changes
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    // Handle traditional signup form submission
+    const handleSignupSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        console.log('=== SIGNUP FORM SUBMISSION STARTED ===');
+        console.log('Form data:', formData);
+        console.log('API_BASE_URL:', 'http://localhost:8080/api');
+
+        // Validate passwords match
+        if (formData.password !== formData.confirmPassword) {
+            console.log('Password validation failed: passwords do not match');
+            setError('Passwords do not match');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const userData = {
+                name: formData.name,
+                email: formData.email,
+                password: formData.password,
+                role: formData.role
+            };
+
+            console.log('=== SENDING SIGNUP REQUEST ===');
+            console.log('userData:', userData);
+            console.log('About to call authAPI.signup...');
+            
+            const response = await authAPI.signup(userData);
+            console.log('=== SIGNUP RESPONSE RECEIVED ===');
+            console.log('Signup response:', response);
+            
+            // Save token
+            console.log('Saving token:', response.token);
+            utils.saveToken(response.token);
+            
+            // Get user profile
+            console.log('Getting user profile...');
+            const userProfile = await authAPI.getProfile(response.token);
+            console.log('User profile:', userProfile);
+            utils.saveUser(userProfile);
+            
+            // Redirect to dashboard
+            console.log('Redirecting to dashboard...');
+            navigate('/dashboard');
+        } catch (error) {
+            console.error('=== SIGNUP ERROR ===');
+            console.error('Error details:', error);
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+            setError(error.message || 'Signup failed. Please try again.');
+        } finally {
+            console.log('=== SIGNUP PROCESS COMPLETED ===');
+            setLoading(false);
+        }
+    };
+
+    // Handle Google OAuth response
     const handleCredentialResponse = (response) => {
         // Parse the JWT token
         const userInfo = parseJwt(response.credential);
         console.log('Google user info:', userInfo);
         
         if (userInfo) {
-            // Store user info in localStorage
-            localStorage.setItem('user', JSON.stringify({
-                id: userInfo.sub,
-                name: userInfo.name,
-                email: userInfo.email,
-                picture: userInfo.picture
-            }));
-            
-            // Redirect to dashboard
-            navigate('/dashboard');
+            // Store user info temporarily and show role selection modal
+            setGoogleUserInfo(userInfo);
+            setShowGoogleRoleModal(true);
         }
+    };
+
+    // Handle Google OAuth role selection
+    const handleGoogleRoleSelection = async () => {
+        if (!googleUserInfo) return;
+
+        setLoading(true);
+        setError('');
+
+        try {
+            // Prepare user data with selected role
+            const userData = {
+                name: googleUserInfo.name,
+                email: googleUserInfo.email,
+                password: 'google-oauth-' + googleUserInfo.sub, // Temporary password for Google OAuth users
+                role: selectedGoogleRole
+            };
+
+            console.log('=== GOOGLE OAUTH SIGNUP ===');
+            console.log('userData:', userData);
+            
+            // Call backend signup API
+            const response = await authAPI.signup(userData);
+            console.log('Google OAuth signup response:', response);
+            
+            // Save token and user info
+            utils.saveToken(response.token);
+            
+            // Get user profile from backend
+            const userProfile = await authAPI.getProfile(response.token);
+            utils.saveUser(userProfile);
+            
+            // Close modal and redirect
+            setShowGoogleRoleModal(false);
+            navigate('/dashboard');
+            
+        } catch (error) {
+            console.error('Google OAuth signup error:', error);
+            setError(error.message || 'Google signup failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Cancel Google OAuth role selection
+    const handleCancelGoogleRoleSelection = () => {
+        setShowGoogleRoleModal(false);
+        setGoogleUserInfo(null);
+        setSelectedGoogleRole('student');
+        setError('');
     };
 
     const parseJwt = (token) => {
@@ -90,18 +222,141 @@ function Signup() {
 
       <div className="signup-right">
         <h2>Signup</h2>
-        <form>
-          <input type="text" placeholder="Username" />
-          <input type="email" placeholder="Email" />
-          <input type="password" placeholder="Password" />
-          <input type="password" placeholder="Confirm Password" />
-          <button type="submit">Signup</button>
+        <form onSubmit={handleSignupSubmit}>
+          <input 
+            type="text" 
+            name="name"
+            placeholder="Full Name" 
+            value={formData.name}
+            onChange={handleInputChange}
+            required
+          />
+          <input 
+            type="email" 
+            name="email"
+            placeholder="Email" 
+            value={formData.email}
+            onChange={handleInputChange}
+            required
+          />
+          <input 
+            type="password" 
+            name="password"
+            placeholder="Password" 
+            value={formData.password}
+            onChange={handleInputChange}
+            required
+          />
+          <input 
+            type="password" 
+            name="confirmPassword"
+            placeholder="Confirm Password" 
+            value={formData.confirmPassword}
+            onChange={handleInputChange}
+            required
+          />
+          <select 
+            name="role"
+            value={formData.role}
+            onChange={handleInputChange}
+            required
+          >
+            <option value="student">Student</option>
+            <option value="company">Company</option>
+            <option value="guide">Guide</option>
+          </select>
+          
+          {error && <div className="error-message">{error}</div>}
+          
+          <button type="submit" disabled={loading}>
+            {loading ? 'Signing up...' : 'Signup'}
+          </button>
         </form>
         <p className="social-text">or signup with</p>
         <div className="social-icons">
+          {/* This div is where the Google button will be rendered by the GIS library */}
           <div id="google-signup-button"></div>
+          {/* <i className="fab fa-facebook-f"></i> */} {/* Assuming you might remove these if only using Google */}
+          {/* <i className="fab fa-google-plus-g"></i> */}
+          {/* <i className="fab fa-linkedin-in"></i> */}
         </div>
       </div>
+
+      {/* Google OAuth Role Selection Modal */}
+      {showGoogleRoleModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Select Your Role</h3>
+            <p>Hi {googleUserInfo?.name}! Please select your role to complete your signup:</p>
+            
+            <div className="role-selection">
+              <label className="role-option">
+                <input
+                  type="radio"
+                  name="googleRole"
+                  value="student"
+                  checked={selectedGoogleRole === 'student'}
+                  onChange={(e) => setSelectedGoogleRole(e.target.value)}
+                />
+                <span className="role-label">
+                  <strong>Student</strong>
+                  <br />
+                  <small>Looking for projects and learning opportunities</small>
+                </span>
+              </label>
+
+              <label className="role-option">
+                <input
+                  type="radio"
+                  name="googleRole"
+                  value="company"
+                  checked={selectedGoogleRole === 'company'}
+                  onChange={(e) => setSelectedGoogleRole(e.target.value)}
+                />
+                <span className="role-label">
+                  <strong>Company</strong>
+                  <br />
+                  <small>Posting projects and hiring students</small>
+                </span>
+              </label>
+
+              <label className="role-option">
+                <input
+                  type="radio"
+                  name="googleRole"
+                  value="guide"
+                  checked={selectedGoogleRole === 'guide'}
+                  onChange={(e) => setSelectedGoogleRole(e.target.value)}
+                />
+                <span className="role-label">
+                  <strong>Guide</strong>
+                  <br />
+                  <small>Mentoring and guiding students</small>
+                </span>
+              </label>
+            </div>
+
+            {error && <div className="error-message">{error}</div>}
+
+            <div className="modal-actions">
+              <button
+                className="btn-cancel"
+                onClick={handleCancelGoogleRoleSelection}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-confirm"
+                onClick={handleGoogleRoleSelection}
+                disabled={loading}
+              >
+                {loading ? 'Creating Account...' : 'Continue'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

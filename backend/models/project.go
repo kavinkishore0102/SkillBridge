@@ -11,6 +11,7 @@ type Project struct {
 	Description string    `json:"description"`
 	Skills      string    `json:"skills"`
 	CompanyID   uint      `json:"company_id"`
+	GuideID     *uint     `json:"guide_id,omitempty"` // Optional guide assignment
 	Deadline    time.Time `json:"deadline"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time

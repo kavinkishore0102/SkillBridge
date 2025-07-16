@@ -44,6 +44,16 @@ body, html {
   font-size: 16px;
 }
 
+.error-message {
+  color: #dc3545;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
 .login-form button {
   padding: 12px;
   background-color: #009966;
@@ -54,6 +64,11 @@ body, html {
   cursor: pointer;
   margin-bottom: 20px;
   transition: background-color 0.3s ease;
+}
+
+.login-form button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 
 .login-form button:hover {

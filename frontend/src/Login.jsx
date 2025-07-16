@@ -1,11 +1,32 @@
 import './css/login.css';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react'; // Keep this line from Stashed changes
+import { authAPI, utils } from './utils/api'; // Keep this line from Stashed changes
 
 function Login() {
     const navigate = useNavigate();
-    
+    // Keep these useState declarations from Stashed changes
+    const [formData, setFormData] = useState({
+        email: '',
+        password: ''
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    // Keep this entire useEffect block from Stashed changes
     useEffect(() => {
+        // Check if user is already logged in
+        const isLoggedIn = utils.isLoggedIn();
+        const token = utils.getToken();
+        const user = utils.getUser();
+        
+        console.log('Login page - Auth check:', { isLoggedIn, token, user });
+        
+        if (isLoggedIn && token && user) {
+            console.log('User already logged in, redirecting to dashboard');
+            navigate('/dashboard');
+        }
+
         // Initialize Google Sign-In when component mounts
         const initializeGoogleSignIn = () => {
             if (window.google && window.google.accounts) {
@@ -42,7 +63,40 @@ function Login() {
                 }
             }, 100);
         }
-    }, []);
+    }, [navigate]);
+
+    // Keep these handler functions from Stashed changes
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleLoginSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        try {
+            const response = await authAPI.login(formData.email, formData.password);
+            
+            // Save token
+            utils.saveToken(response.token);
+            
+            // Get user profile
+            const userProfile = await authAPI.getProfile(response.token);
+            utils.saveUser(userProfile);
+            
+            // Redirect to dashboard
+            navigate('/dashboard');
+        } catch (error) {
+            setError(error.message || 'Login failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleCredentialResponse = (response) => {
         // Parse the JWT token
@@ -51,12 +105,17 @@ function Login() {
         
         if (userInfo) {
             // Store user info in localStorage
-            localStorage.setItem('user', JSON.stringify({
+            utils.saveUser({
                 id: userInfo.sub,
                 name: userInfo.name,
                 email: userInfo.email,
-                picture: userInfo.picture
-            }));
+                picture: userInfo.picture,
+                role: 'student' // Default role for Google OAuth users (might need adjustment based on backend)
+            });
+            
+            // For now, we'll use a mock token for Google OAuth
+            // In production, you'd send this to your backend to verify and get a proper JWT
+            utils.saveToken('google-oauth-token'); // This token will need to be properly handled by your backend
             
             // Redirect to dashboard
             navigate('/dashboard');
@@ -76,18 +135,43 @@ function Login() {
             return null;
         }
     };
+
   return (
     <div className="container">
       <div className="login-form">
         <h2>Login</h2>
-        <form>
-          <input type="text" placeholder="Username" />
-          <input type="password" placeholder="Password" />
-          <button type="submit">Login</button>
+        <form onSubmit={handleLoginSubmit}>
+          <input 
+            type="email" 
+            name="email"
+            placeholder="Email" 
+            value={formData.email}
+            onChange={handleInputChange}
+            required
+          />
+          <input 
+            type="password" 
+            name="password"
+            placeholder="Password" 
+            value={formData.password}
+            onChange={handleInputChange}
+            required
+          />
+          
+          {error && <div className="error-message">{error}</div>}
+          
+          <button type="submit" disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
         </form>
         <p className="social-text">or signin with</p>
         <div className="social-icons">
+          {/* This div is where the Google button will be rendered by the GIS library */}
           <div id="google-signin-button"></div>
+          {/* You can uncomment or adjust these if you still plan to use other social icons */}
+          {/* <i className="fab fa-facebook-f"></i> */}
+          {/* <i className="fab fa-google-plus-g"></i> */}
+          {/* <i className="fab fa-linkedin-in"></i> */}
         </div>
       </div>
       <div className="login-info">

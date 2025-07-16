@@ -9,7 +9,25 @@ import (
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
 
+	// CORS middleware
+	router.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	})
+
 	// 🔓 Public routes
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok", "message": "Backend is running"})
+	})
 	router.POST("/api/signup", controller.SignUp)
 	router.POST("/api/login", controller.Login)
 
@@ -44,13 +62,12 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/my-submissions", middleware.AuthorizeRoles("student"), controller.GetMySubmissions)
 		authorized.GET("/dashboard/student", middleware.AuthorizeRoles("student"), controller.StudentDashboard)
 		authorized.GET("/dashboard/company", middleware.AuthorizeRoles("company"), controller.CompanyDashboard)
+		authorized.GET("/dashboard/guide", middleware.AuthorizeRoles("guide"), controller.GuideDashboard)
 		authorized.GET("/company/applications", middleware.AuthorizeRoles("company"), controller.GetCompanyApplications)
 		authorized.GET("/my-applications", middleware.AuthorizeRoles("student"), controller.GetMyApplications)
 		authorized.GET("/guide/submissions", middleware.AuthorizeRoles("guide"), controller.GetGuideSubmissions)
 
 	}
 
-	// Start server
-	router.Run(":8080")
 	return router
 }

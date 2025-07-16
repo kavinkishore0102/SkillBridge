@@ -19,7 +19,12 @@ func CheckPassword(storedHash, plainPassword string) bool {
 	log.Printf("storedHash: %s", storedHash)
 	log.Printf("plainPassword: %s", plainPassword)
 	err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(plainPassword))
-	return err == nil // REMOVED LOGGING
+	if err != nil {
+		log.Printf("bcrypt comparison error: %v", err)
+	} else {
+		log.Printf("bcrypt comparison succeeded")
+	}
+	return err == nil
 }
 
 func CreateNotification(db *gorm.DB, userID uint, message string) error {
