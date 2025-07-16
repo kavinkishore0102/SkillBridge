@@ -131,9 +131,18 @@ body, html {
 .social-icons {
   display: flex;
   justify-content: center;
-  gap: 20px;
-  font-size: 20px;
-  color: #333;
+  margin-top: 10px;
+}
+
+#google-signup-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Remove the old custom Google button styles */
+.google-btn {
+  display: none;
 }
 
 .social-icons i:hover {
