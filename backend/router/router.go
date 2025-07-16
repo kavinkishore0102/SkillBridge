@@ -4,10 +4,26 @@ import (
 	"SkillBridge/controller"
 	"SkillBridge/middleware"
 	"github.com/gin-gonic/gin"
+	// "net/http"
 )
 
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
+
+	// CORS middleware
+	router.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	})
 
 	// 🔓 Public routes
 	router.POST("/api/signup", controller.SignUp)
@@ -50,7 +66,5 @@ func SetupRouter() *gin.Engine {
 
 	}
 
-	// Start server
-	router.Run(":8080")
 	return router
 }

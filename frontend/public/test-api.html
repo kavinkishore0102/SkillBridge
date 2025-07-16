@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Connectivity Test</h1>
+    <button onclick="testAPI()">Test Signup API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: 'Test User from HTML',
+                        email: 'htmltest@example.com',
+                        password: 'testpassword123',
+                        role: 'student'
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('API Response:', result);
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div style="color: green;">Success: ${JSON.stringify(result)}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div style="color: red;">Error: ${JSON.stringify(result)}</div>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `<div style="color: red;">Network Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
