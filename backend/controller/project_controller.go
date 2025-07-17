@@ -69,8 +69,10 @@ func ApplyToProject(c *gin.Context) {
 	}
 
 	application := models.Application{
-		ProjectID: input.ProjectID,
-		StudentID: studentID,
+		ProjectID:    input.ProjectID,
+		StudentID:    studentID,
+		Status:       "pending", // Set default status
+		ProjectTitle: project.Title, // Save project title directly
 	}
 
 	if err := DB.Create(&application).Error; err != nil {

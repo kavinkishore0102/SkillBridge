@@ -1,0 +1,2 @@
+/* This is a placeholder for the logo image */
+/* The actual logo image should be placed in /Users/kavinkishore/Desktop/git/SkillBridge/frontend/public/logo.svg */

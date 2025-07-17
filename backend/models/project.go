@@ -10,6 +10,7 @@ type Project struct {
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Skills      string    `json:"skills"`
+	Budget      string    `json:"budget"`
 	CompanyID   uint      `json:"company_id"`
 	GuideID     *uint     `json:"guide_id,omitempty"` // Optional guide assignment
 	Deadline    time.Time `json:"deadline"`
@@ -19,8 +20,10 @@ type Project struct {
 
 type Application struct {
 	gorm.Model
-	StudentID uint    `json:"student_id"`
-	ProjectID uint    `json:"project_id"`
-	Student   User    `gorm:"foreignKey:StudentID"`
-	Project   Project `gorm:"foreignKey:ProjectID"`
+	StudentID    uint    `json:"student_id"`
+	ProjectID    uint    `json:"project_id"`
+	Status       string  `json:"status" gorm:"default:'pending'"` // pending, approved, rejected
+	ProjectTitle string  `json:"project_title"`                   // Direct project title for easier queries
+	Student      User    `gorm:"foreignKey:StudentID"`
+	Project      Project `gorm:"foreignKey:ProjectID"`
 }

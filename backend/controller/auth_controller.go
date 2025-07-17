@@ -120,10 +120,13 @@ func GetProfile(c *gin.Context) {
 
 	// successfully profile got.
 	c.JSON(http.StatusOK, gin.H{
-		"id":    user.ID,
-		"name":  user.Name,
-		"email": user.Email,
-		"role":  user.Role,
+		"id":         user.ID,
+		"name":       user.Name,
+		"email":      user.Email,
+		"role":       user.Role,
+		"bio":        user.Bio,
+		"github_url": user.GithubURL,
+		"linkedin":   user.LinkedIn,
 	})
 }
 
@@ -135,9 +138,12 @@ func UpdateProfile(c *gin.Context) {
 	}
 
 	var input struct {
-		Name  string `json:"name"`
-		Email string `json:"email"`
-		Role  string `json:"role"`
+		Name      string `json:"name"`
+		Email     string `json:"email"`
+		Role      string `json:"role"`
+		Bio       string `json:"bio"`
+		GithubURL string `json:"github_url"`
+		LinkedIn  string `json:"linkedin"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -152,7 +158,14 @@ func UpdateProfile(c *gin.Context) {
 	}
 
 	if err := DB.Model(&models.User{}).Where("id = ?", userID).
-		Updates(models.User{Name: input.Name, Email: input.Email, Role: input.Role}).Error; err != nil {
+		Updates(models.User{
+			Name:      input.Name, 
+			Email:     input.Email, 
+			Role:      input.Role,
+			Bio:       input.Bio,
+			GithubURL: input.GithubURL,
+			LinkedIn:  input.LinkedIn,
+		}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
 		return
 	}

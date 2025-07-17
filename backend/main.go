@@ -5,6 +5,7 @@ import (
 	"SkillBridge/controller"
 	"SkillBridge/models"
 	"SkillBridge/router"
+	"os"
 )
 
 func main() {
@@ -17,5 +18,11 @@ func main() {
 	controller.InitAuth(db)
 	//setup router
 	r := router.SetupRouter()
-	r.Run(":8080")
+	
+	// Use PORT environment variable if set, otherwise default to 8080
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	r.Run(":" + port)
 }

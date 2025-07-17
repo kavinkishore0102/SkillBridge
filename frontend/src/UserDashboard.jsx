@@ -1,59 +1,55 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from './contexts/ThemeContext';
+import { useNotifications } from './contexts/NotificationContext';
 import { utils, authAPI, dashboardAPI } from './utils/api';
 
 // Dashboard configurations for different roles
-const getDashboardConfig = (role, data) => {
+const getDashboardConfig = (role, data, user, theme) => {
   const configs = {
     student: {
       title: '🎓 Student Dashboard',
-      backgroundColor: '#e3f2fd',
+      backgroundColor: theme.colors.primary + '20',
       stats: [
-        { key: 'applied_projects', label: 'Applications', color: '#1976d2', value: data?.applied_projects || 0 },
-        { key: 'submissions', label: 'Submissions', color: '#1976d2', value: data?.submissions || 0 },
-        { key: 'accepted', label: 'Accepted', color: '#4caf50', value: data?.submission_summary?.accepted || 0 },
-        { key: 'pending', label: 'Pending', color: '#ff9800', value: data?.submission_summary?.pending || 0 },
-        { key: 'rejected', label: 'Rejected', color: '#f44336', value: data?.submission_summary?.rejected || 0 },
+        { key: 'applied_projects', label: 'Applications', color: theme.colors.primary, value: data?.applied_projects || 0 },
+        { key: 'submissions', label: 'Submissions', color: theme.colors.primary, value: data?.submissions || 0 },
+        { key: 'accepted', label: 'Accepted', color: theme.colors.success, value: data?.submission_summary?.accepted || 0 },
+        { key: 'pending', label: 'Pending', color: theme.colors.warning, value: data?.submission_summary?.pending || 0 },
+        { key: 'rejected', label: 'Rejected', color: theme.colors.danger, value: data?.submission_summary?.rejected || 0 },
       ],
-      quickActions: [
-        'Browse available projects',
-        'Apply for projects that match your skills',
-        'Track your applications',
-        'Submit your completed work',
-        'View feedback from companies'
+      profileLinks: [
+        { label: 'LinkedIn', url: user?.linkedin, icon: '💼' },
+        { label: 'GitHub', url: user?.github_url, icon: '🐱' },
+        { label: 'Portfolio', url: user?.portfolio_url, icon: '🌐' },
       ]
     },
     company: {
       title: '🏢 Company Dashboard',
-      backgroundColor: '#e8f5e8',
+      backgroundColor: theme.colors.success + '20',
       stats: [
-        { key: 'posted_projects', label: 'Posted Projects', color: '#4caf50', value: data?.posted_projects || 0 },
-        { key: 'total_applicants', label: 'Total Applicants', color: '#2196f3', value: data?.total_applicants || 0 },
-        { key: 'total_submissions', label: 'Total Submissions', color: '#ff9800', value: data?.total_submissions || 0 },
+        { key: 'posted_projects', label: 'Posted Projects', color: theme.colors.success, value: data?.posted_projects || 0 },
+        { key: 'total_applicants', label: 'Total Applicants', color: theme.colors.primary, value: data?.total_applicants || 0 },
+        { key: 'total_submissions', label: 'Total Submissions', color: theme.colors.warning, value: data?.total_submissions || 0 },
       ],
-      quickActions: [
-        'Post new projects for students',
-        'Review student applications',
-        'Manage your posted projects',
-        'Review student submissions',
-        'Provide feedback to students'
+      profileLinks: [
+        { label: 'Company Website', url: user?.company_url, icon: '🏢' },
+        { label: 'LinkedIn', url: user?.linkedin, icon: '💼' },
+        { label: 'Careers Page', url: user?.careers_url, icon: '💼' },
       ]
     },
     guide: {
       title: '👨‍🏫 Guide Dashboard',
-      backgroundColor: '#fff3e0',
+      backgroundColor: theme.colors.warning + '20',
       stats: [
-        { key: 'assigned_projects', label: 'Assigned Projects', color: '#ff9800', value: data?.assigned_projects || 0 },
-        { key: 'total_submissions', label: 'Total Submissions', color: '#2196f3', value: data?.total_submissions || 0 },
-        { key: 'pending_reviews', label: 'Pending Reviews', color: '#f44336', value: data?.pending_reviews || 0 },
-        { key: 'completed_reviews', label: 'Completed Reviews', color: '#4caf50', value: data?.completed_reviews || 0 },
+        { key: 'assigned_projects', label: 'Assigned Projects', color: theme.colors.warning, value: data?.assigned_projects || 0 },
+        { key: 'total_submissions', label: 'Total Submissions', color: theme.colors.primary, value: data?.total_submissions || 0 },
+        { key: 'pending_reviews', label: 'Pending Reviews', color: theme.colors.danger, value: data?.pending_reviews || 0 },
+        { key: 'completed_reviews', label: 'Completed Reviews', color: theme.colors.success, value: data?.completed_reviews || 0 },
       ],
-      quickActions: [
-        'Review pending submissions',
-        'Provide guidance to students',
-        'Monitor project progress',
-        'Approve or reject submissions',
-        'Give constructive feedback'
+      profileLinks: [
+        { label: 'LinkedIn', url: user?.linkedin, icon: '💼' },
+        { label: 'GitHub', url: user?.github_url, icon: '🐱' },
+        { label: 'Academic Profile', url: user?.academic_url, icon: '🎓' },
       ]
     }
   };
@@ -62,14 +58,28 @@ const getDashboardConfig = (role, data) => {
     title: '📊 Dashboard',
     backgroundColor: '#f5f5f5',
     stats: [],
-    quickActions: ['Welcome to your dashboard']
+    profileLinks: []
   };
 };
 
 function Dashboard() {
+  const theme = useTheme();
   const [user, setUser] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateFormData, setUpdateFormData] = useState({
+    name: '',
+    email: '',
+    bio: '',
+    github_url: '',
+    linkedin: '',
+    portfolio_url: '',
+    company_url: '',
+    careers_url: '',
+    academic_url: ''
+  });
+  const [updating, setUpdating] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -117,7 +127,22 @@ function Dashboard() {
             let dashboardResponse;
             switch (userData.role) {
               case 'student':
-                dashboardResponse = await dashboardAPI.getStudentDashboard(token);
+                // For students, also fetch applications to ensure consistency
+                const [studentDashboard, applicationsResponse] = await Promise.all([
+                  dashboardAPI.getStudentDashboard(token),
+                  dashboardAPI.getMyApplications(token)
+                ]);
+                
+                console.log('Dashboard API response:', studentDashboard);
+                console.log('Applications API response:', applicationsResponse);
+                console.log('Applications count from dashboard API:', studentDashboard?.applied_projects);
+                console.log('Applications count from applications API:', applicationsResponse?.applications?.length);
+                
+                // Override the applied_projects count with actual applications count
+                dashboardResponse = {
+                  ...studentDashboard,
+                  applied_projects: applicationsResponse?.applications?.length || 0
+                };
                 break;
               case 'company':
                 dashboardResponse = await dashboardAPI.getCompanyDashboard(token);
@@ -147,11 +172,73 @@ function Dashboard() {
     };
 
     initializeDashboard();
+
+    // Listen for application updates from other components
+    const handleApplicationsUpdate = () => {
+      console.log('Applications updated, refreshing dashboard...');
+      initializeDashboard();
+    };
+
+    window.addEventListener('applicationsUpdated', handleApplicationsUpdate);
+    
+    return () => {
+      window.removeEventListener('applicationsUpdated', handleApplicationsUpdate);
+    };
   }, [navigate]);
 
   const handleLogout = () => {
     utils.logout();
     navigate('/');
+  };
+
+  const handleUpdateProfile = () => {
+    setUpdateFormData({
+      name: user.name || '',
+      email: user.email || '',
+      bio: user.bio || '',
+      github_url: user.github_url || '',
+      linkedin: user.linkedin || '',
+      portfolio_url: user.portfolio_url || '',
+      company_url: user.company_url || '',
+      careers_url: user.careers_url || '',
+      academic_url: user.academic_url || ''
+    });
+    setShowUpdateModal(true);
+  };
+
+  const handleUpdateFormChange = (e) => {
+    const { name, value } = e.target;
+    setUpdateFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleUpdateSubmit = async (e) => {
+    e.preventDefault();
+    setUpdating(true);
+    
+    try {
+      const token = utils.getToken();
+      await authAPI.updateProfile(updateFormData, token);
+      
+      // Update user state with new data
+      const updatedUser = { ...user, ...updateFormData };
+      setUser(updatedUser);
+      utils.saveUser(updatedUser);
+      
+      setShowUpdateModal(false);
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowUpdateModal(false);
   };
 
   if (loading) {
@@ -176,16 +263,25 @@ function Dashboard() {
         justifyContent: 'center', 
         alignItems: 'center', 
         height: '100vh',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        backgroundColor: theme.colors.background,
+        color: theme.colors.text
       }}>
-        <div style={{ fontSize: '18px', marginBottom: '10px', color: '#f44336' }}>No user data available</div>
-        <div style={{ fontSize: '14px', color: '#666' }}>Redirecting to login...</div>
+        <div style={{ fontSize: '18px', marginBottom: '10px', color: theme.colors.danger }}>No user data available</div>
+        <div style={{ fontSize: '14px', color: theme.colors.textSecondary }}>Redirecting to login...</div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '40px', fontFamily: 'Arial, sans-serif' }}>
+    <div style={{ 
+      padding: '40px', 
+      fontFamily: 'Arial, sans-serif',
+      backgroundColor: theme.colors.background,
+      color: theme.colors.text,
+      minHeight: '100vh',
+      transition: 'all 0.3s ease'
+    }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{ 
@@ -194,8 +290,10 @@ function Dashboard() {
           alignItems: 'center',
           marginBottom: '30px',
           padding: '20px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '8px'
+          backgroundColor: theme.colors.card,
+          borderRadius: '8px',
+          border: `1px solid ${theme.colors.border}`,
+          boxShadow: theme.shadows.card
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             {user.picture && (
@@ -211,39 +309,57 @@ function Dashboard() {
               />
             )}
             <div>
-              <h2 style={{ margin: 0 }}>Welcome, {user.name}!</h2>
-              <p style={{ margin: 0, color: '#666' }}>
+              <h2 style={{ margin: 0, color: theme.colors.text }}>Welcome, {user.name}!</h2>
+              <p style={{ margin: 0, color: theme.colors.textSecondary }}>
                 Role: <strong>{user.role}</strong> | Email: {user.email}
               </p>
             </div>
           </div>
-          <button 
-            onClick={handleLogout}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Logout
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={() => navigate('/projects')}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: theme.colors.primary,
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              View Projects
+            </button>
+            <button 
+              onClick={handleLogout}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: theme.colors.danger,
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* Dynamic Role-based Dashboard */}
         {(() => {
-          const config = getDashboardConfig(user.role, dashboardData);
+          const config = getDashboardConfig(user.role, dashboardData, user, theme);
           return (
             <div style={{ 
               backgroundColor: config.backgroundColor,
               padding: '20px',
               borderRadius: '8px',
-              marginBottom: '20px'
+              marginBottom: '20px',
+              border: `1px solid ${theme.colors.border}`
             }}>
-              <h3>{config.title}</h3>
+              <h3 style={{ color: theme.colors.text }}>{config.title}</h3>
               {dashboardData ? (
                 <div>
                   {/* Stats Grid */}
@@ -255,79 +371,643 @@ function Dashboard() {
                   }}>
                     {config.stats.map((stat, index) => (
                       <div key={index} style={{ 
-                        backgroundColor: '#fff', 
+                        backgroundColor: theme.colors.card, 
                         padding: '15px', 
                         borderRadius: '8px', 
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)' 
+                        boxShadow: theme.shadows.card,
+                        border: `1px solid ${theme.colors.border}`
                       }}>
                         <h4 style={{ margin: '0 0 10px 0', color: stat.color }}>
                           {stat.label}
                         </h4>
-                        <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
+                        <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: theme.colors.text }}>
                           {stat.value}
                         </p>
                       </div>
                     ))}
                   </div>
                   
-                  {/* Quick Actions */}
+                  {/* Profile Links */}
                   <div style={{ 
-                    backgroundColor: '#fff', 
+                    backgroundColor: theme.colors.card, 
                     padding: '15px', 
                     borderRadius: '8px', 
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)' 
+                    boxShadow: theme.shadows.card,
+                    border: `1px solid ${theme.colors.border}`
                   }}>
-                    <h4>Quick Actions</h4>
-                    <ul style={{ lineHeight: '1.8' }}>
-                      {config.quickActions.map((action, index) => (
-                        <li key={index}>{action}</li>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <h4 style={{ margin: 0, color: theme.colors.text }}>Profile Links</h4>
+                      <button 
+                        onClick={handleUpdateProfile}
+                        style={{
+                          backgroundColor: theme.colors.primary,
+                          color: 'white',
+                          border: 'none',
+                          padding: '8px 12px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        Update Profile
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {config.profileLinks.map((link, index) => (
+                        <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '16px' }}>{link.icon}</span>
+                          {link.url ? (
+                            <a 
+                              href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ 
+                                color: theme.colors.primary,
+                                textDecoration: 'none',
+                                fontSize: '14px'
+                              }}
+                            >
+                              {link.label}
+                            </a>
+                          ) : (
+                            <span style={{ 
+                              color: theme.colors.textSecondary, 
+                              fontSize: '14px',
+                              fontStyle: 'italic'
+                            }}>
+                              {link.label} not set
+                            </span>
+                          )}
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <p>Loading dashboard data...</p>
+                <p style={{ color: theme.colors.textSecondary }}>Loading dashboard data...</p>
               )}
             </div>
           );
         })()}
 
-        {/* Quick Stats */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '20px',
-          marginTop: '30px'
+        {/* Quick Actions */}
+        <div style={{
+          backgroundColor: theme.colors.card,
+          borderRadius: '8px',
+          padding: '25px',
+          marginTop: '30px',
+          border: `1px solid ${theme.colors.border}`,
+          boxShadow: theme.shadows.card
         }}>
-          <div style={{ 
-            backgroundColor: '#f8f9fa',
-            padding: '20px',
-            borderRadius: '8px',
-            textAlign: 'center'
+          <h3 style={{ 
+            color: theme.colors.text, 
+            marginBottom: '20px',
+            fontSize: '20px',
+            fontWeight: '600'
           }}>
-            <h4>📊 Quick Stats</h4>
-            <p>Coming soon...</p>
-          </div>
-          <div style={{ 
-            backgroundColor: '#f8f9fa',
-            padding: '20px',
-            borderRadius: '8px',
-            textAlign: 'center'
+            🚀 Quick Actions
+          </h3>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '15px'
           }}>
-            <h4>🔔 Notifications</h4>
-            <p>No new notifications</p>
-          </div>
-          <div style={{ 
-            backgroundColor: '#f8f9fa',
-            padding: '20px',
-            borderRadius: '8px',
-            textAlign: 'center'
-          }}>
-            <h4>⚡ Quick Actions</h4>
-            <p>Feature under development</p>
+            {user.role === 'student' && (
+              <>
+                <button
+                  onClick={() => navigate('/projects')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.primary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  🔍 Browse Projects
+                </button>
+                
+                <button
+                  onClick={() => navigate('/applied-projects')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.secondary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  📋 My Applications
+                </button>
+
+                <button
+                  onClick={() => navigate('/submissions')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.warning,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  📤 My Submissions
+                </button>
+
+                <button
+                  onClick={() => navigate('/chat')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.success,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  🤖 AI Assistant
+                </button>
+              </>
+            )}
+
+            {user.role === 'company' && (
+              <>
+                <button
+                  onClick={() => navigate('/post-project')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.primary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  ➕ Post New Project
+                </button>
+
+                <button
+                  onClick={() => navigate('/company/projects')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.secondary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  📁 My Projects
+                </button>
+
+                <button
+                  onClick={() => navigate('/company/applications')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.warning,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  👥 View Applications
+                </button>
+
+                <button
+                  onClick={() => navigate('/company/submissions')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.success,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  📊 Review Submissions
+                </button>
+              </>
+            )}
+
+            {user.role === 'guide' && (
+              <>
+                <button
+                  onClick={() => navigate('/guide/projects')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.primary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  📋 Assigned Projects
+                </button>
+
+                <button
+                  onClick={() => navigate('/guide/reviews')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.secondary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  ⭐ Pending Reviews
+                </button>
+
+                <button
+                  onClick={() => navigate('/guide/submissions')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.warning,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  📤 All Submissions
+                </button>
+              </>
+            )}
+
+            {/* Common actions for all roles */}
+            <button
+              onClick={() => navigate('/profile')}
+              style={{
+                padding: '15px 20px',
+                backgroundColor: theme.colors.textSecondary,
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+            >
+              👤 View Profile
+            </button>
           </div>
         </div>
+
       </div>
+
+      {/* Update Profile Modal */}
+      {showUpdateModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '30px',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: '20px' }}>Update Profile</h3>
+            
+            <form onSubmit={handleUpdateSubmit}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={updateFormData.name}
+                  onChange={handleUpdateFormChange}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={updateFormData.email}
+                  onChange={handleUpdateFormChange}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  Bio
+                </label>
+                <textarea
+                  name="bio"
+                  value={updateFormData.bio}
+                  onChange={handleUpdateFormChange}
+                  rows="3"
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd',
+                    resize: 'vertical'
+                  }}
+                  placeholder="Tell us about yourself..."
+                />
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  LinkedIn URL
+                </label>
+                <input
+                  type="url"
+                  name="linkedin"
+                  value={updateFormData.linkedin}
+                  onChange={handleUpdateFormChange}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }}
+                  placeholder="https://linkedin.com/in/yourprofile"
+                />
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  GitHub URL
+                </label>
+                <input
+                  type="url"
+                  name="github_url"
+                  value={updateFormData.github_url}
+                  onChange={handleUpdateFormChange}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }}
+                  placeholder="https://github.com/yourusername"
+                />
+              </div>
+
+              {user?.role === 'student' && (
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Portfolio URL
+                  </label>
+                  <input
+                    type="url"
+                    name="portfolio_url"
+                    value={updateFormData.portfolio_url}
+                    onChange={handleUpdateFormChange}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd'
+                    }}
+                    placeholder="https://yourportfolio.com"
+                  />
+                </div>
+              )}
+
+              {user?.role === 'company' && (
+                <>
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                      Company Website
+                    </label>
+                    <input
+                      type="url"
+                      name="company_url"
+                      value={updateFormData.company_url}
+                      onChange={handleUpdateFormChange}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        border: '1px solid #ddd'
+                      }}
+                      placeholder="https://yourcompany.com"
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                      Careers Page URL
+                    </label>
+                    <input
+                      type="url"
+                      name="careers_url"
+                      value={updateFormData.careers_url}
+                      onChange={handleUpdateFormChange}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        border: '1px solid #ddd'
+                      }}
+                      placeholder="https://yourcompany.com/careers"
+                    />
+                  </div>
+                </>
+              )}
+
+              {user?.role === 'guide' && (
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Academic Profile URL
+                  </label>
+                  <input
+                    type="url"
+                    name="academic_url"
+                    value={updateFormData.academic_url}
+                    onChange={handleUpdateFormChange}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd'
+                    }}
+                    placeholder="https://scholar.google.com/citations?user=..."
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  style={{
+                    backgroundColor: '#f5f5f5',
+                    color: '#333',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  style={{
+                    backgroundColor: '#1976d2',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '4px',
+                    cursor: updating ? 'not-allowed' : 'pointer',
+                    opacity: updating ? 0.7 : 1
+                  }}
+                >
+                  {updating ? 'Updating...' : 'Update Profile'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -31,7 +31,7 @@ function Login() {
         const initializeGoogleSignIn = () => {
             if (window.google && window.google.accounts) {
                 window.google.accounts.id.initialize({
-                    client_id: '694389954977-6m3ksdmkph01bmn98skfuac3mrvhaumu.apps.googleusercontent.com',
+                    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '694389954977-6m3ksdmkph01bmn98skfuac3mrvhaumu.apps.googleusercontent.com',
                     callback: handleCredentialResponse,
                     auto_select: false,
                     cancel_on_tap_outside: true
@@ -139,6 +139,17 @@ function Login() {
   return (
     <div className="container">
       <div className="login-form">
+        <div className="logo-container" style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <img 
+            src="/logo.svg" 
+            alt="SkillBridge Logo" 
+            style={{ 
+              width: '150px', 
+              height: 'auto',
+              marginBottom: '10px'
+            }} 
+          />
+        </div>
         <h2>Login</h2>
         <form onSubmit={handleLoginSubmit}>
           <input 
