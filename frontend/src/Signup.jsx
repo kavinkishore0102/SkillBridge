@@ -221,6 +221,17 @@ function Signup() {
       </div>
 
       <div className="signup-right">
+        <div className="logo-container" style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <img 
+            src="/logo.svg" 
+            alt="SkillBridge Logo" 
+            style={{ 
+              width: '150px', 
+              height: 'auto',
+              marginBottom: '10px'
+            }} 
+          />
+        </div>
         <h2>Signup</h2>
         <form onSubmit={handleSignupSubmit}>
           <input 

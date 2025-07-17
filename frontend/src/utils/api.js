@@ -97,6 +97,11 @@ export const projectAPI = {
     return await apiCall('/projects/apply', 'POST', { project_id: projectId }, token);
   },
 
+  // Withdraw application (student only)
+  withdrawApplication: async (projectId, token) => {
+    return await apiCall(`/projects/${projectId}/apply`, 'DELETE', null, token);
+  },
+
   // Post new project (company only)
   postProject: async (projectData, token) => {
     return await apiCall('/projects', 'POST', projectData, token);
