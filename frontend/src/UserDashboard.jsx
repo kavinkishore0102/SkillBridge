@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { utils, authAPI, dashboardAPI } from './utils/api';
 
 // Dashboard configurations for different roles
-const getDashboardConfig = (role, data) => {
+const getDashboardConfig = (role, data, user) => {
   const configs = {
     student: {
       title: '🎓 Student Dashboard',
@@ -15,12 +15,10 @@ const getDashboardConfig = (role, data) => {
         { key: 'pending', label: 'Pending', color: '#ff9800', value: data?.submission_summary?.pending || 0 },
         { key: 'rejected', label: 'Rejected', color: '#f44336', value: data?.submission_summary?.rejected || 0 },
       ],
-      quickActions: [
-        'Browse available projects',
-        'Apply for projects that match your skills',
-        'Track your applications',
-        'Submit your completed work',
-        'View feedback from companies'
+      profileLinks: [
+        { label: 'LinkedIn', url: user?.linkedin, icon: '💼' },
+        { label: 'GitHub', url: user?.github_url, icon: '🐱' },
+        { label: 'Portfolio', url: user?.portfolio_url, icon: '🌐' },
       ]
     },
     company: {
@@ -31,12 +29,10 @@ const getDashboardConfig = (role, data) => {
         { key: 'total_applicants', label: 'Total Applicants', color: '#2196f3', value: data?.total_applicants || 0 },
         { key: 'total_submissions', label: 'Total Submissions', color: '#ff9800', value: data?.total_submissions || 0 },
       ],
-      quickActions: [
-        'Post new projects for students',
-        'Review student applications',
-        'Manage your posted projects',
-        'Review student submissions',
-        'Provide feedback to students'
+      profileLinks: [
+        { label: 'Company Website', url: user?.company_url, icon: '🏢' },
+        { label: 'LinkedIn', url: user?.linkedin, icon: '💼' },
+        { label: 'Careers Page', url: user?.careers_url, icon: '💼' },
       ]
     },
     guide: {
@@ -48,12 +44,10 @@ const getDashboardConfig = (role, data) => {
         { key: 'pending_reviews', label: 'Pending Reviews', color: '#f44336', value: data?.pending_reviews || 0 },
         { key: 'completed_reviews', label: 'Completed Reviews', color: '#4caf50', value: data?.completed_reviews || 0 },
       ],
-      quickActions: [
-        'Review pending submissions',
-        'Provide guidance to students',
-        'Monitor project progress',
-        'Approve or reject submissions',
-        'Give constructive feedback'
+      profileLinks: [
+        { label: 'LinkedIn', url: user?.linkedin, icon: '💼' },
+        { label: 'GitHub', url: user?.github_url, icon: '🐱' },
+        { label: 'Academic Profile', url: user?.academic_url, icon: '🎓' },
       ]
     }
   };
@@ -62,7 +56,7 @@ const getDashboardConfig = (role, data) => {
     title: '📊 Dashboard',
     backgroundColor: '#f5f5f5',
     stats: [],
-    quickActions: ['Welcome to your dashboard']
+    profileLinks: []
   };
 };
 
@@ -70,6 +64,19 @@ function Dashboard() {
   const [user, setUser] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateFormData, setUpdateFormData] = useState({
+    name: '',
+    email: '',
+    bio: '',
+    github_url: '',
+    linkedin: '',
+    portfolio_url: '',
+    company_url: '',
+    careers_url: '',
+    academic_url: ''
+  });
+  const [updating, setUpdating] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -154,6 +161,56 @@ function Dashboard() {
     navigate('/');
   };
 
+  const handleUpdateProfile = () => {
+    setUpdateFormData({
+      name: user.name || '',
+      email: user.email || '',
+      bio: user.bio || '',
+      github_url: user.github_url || '',
+      linkedin: user.linkedin || '',
+      portfolio_url: user.portfolio_url || '',
+      company_url: user.company_url || '',
+      careers_url: user.careers_url || '',
+      academic_url: user.academic_url || ''
+    });
+    setShowUpdateModal(true);
+  };
+
+  const handleUpdateFormChange = (e) => {
+    const { name, value } = e.target;
+    setUpdateFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleUpdateSubmit = async (e) => {
+    e.preventDefault();
+    setUpdating(true);
+    
+    try {
+      const token = utils.getToken();
+      await authAPI.updateProfile(updateFormData, token);
+      
+      // Update user state with new data
+      const updatedUser = { ...user, ...updateFormData };
+      setUser(updatedUser);
+      utils.saveUser(updatedUser);
+      
+      setShowUpdateModal(false);
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowUpdateModal(false);
+  };
+
   if (loading) {
     return (
       <div style={{ 
@@ -235,7 +292,7 @@ function Dashboard() {
 
         {/* Dynamic Role-based Dashboard */}
         {(() => {
-          const config = getDashboardConfig(user.role, dashboardData);
+          const config = getDashboardConfig(user.role, dashboardData, user);
           return (
             <div style={{ 
               backgroundColor: config.backgroundColor,
@@ -270,19 +327,59 @@ function Dashboard() {
                     ))}
                   </div>
                   
-                  {/* Quick Actions */}
+                  {/* Profile Links */}
                   <div style={{ 
                     backgroundColor: '#fff', 
                     padding: '15px', 
                     borderRadius: '8px', 
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)' 
                   }}>
-                    <h4>Quick Actions</h4>
-                    <ul style={{ lineHeight: '1.8' }}>
-                      {config.quickActions.map((action, index) => (
-                        <li key={index}>{action}</li>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <h4 style={{ margin: 0 }}>Profile Links</h4>
+                      <button 
+                        onClick={handleUpdateProfile}
+                        style={{
+                          backgroundColor: '#1976d2',
+                          color: 'white',
+                          border: 'none',
+                          padding: '8px 12px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        Update Profile
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {config.profileLinks.map((link, index) => (
+                        <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '16px' }}>{link.icon}</span>
+                          {link.url ? (
+                            <a 
+                              href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ 
+                                color: '#1976d2',
+                                textDecoration: 'none',
+                                fontSize: '14px'
+                              }}
+                            >
+                              {link.label}
+                            </a>
+                          ) : (
+                            <span style={{ 
+                              color: '#666', 
+                              fontSize: '14px',
+                              fontStyle: 'italic'
+                            }}>
+                              {link.label} not set
+                            </span>
+                          )}
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -305,7 +402,7 @@ function Dashboard() {
             borderRadius: '8px',
             textAlign: 'center'
           }}>
-            <h4>📊 Quick Stats</h4>
+            <h4>📊 Analytics</h4>
             <p>Coming soon...</p>
           </div>
           <div style={{ 
@@ -323,11 +420,253 @@ function Dashboard() {
             borderRadius: '8px',
             textAlign: 'center'
           }}>
-            <h4>⚡ Quick Actions</h4>
-            <p>Feature under development</p>
+            <h4>⚙️ Settings</h4>
+            <p>Profile settings</p>
           </div>
         </div>
       </div>
+
+      {/* Update Profile Modal */}
+      {showUpdateModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '30px',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: '20px' }}>Update Profile</h3>
+            
+            <form onSubmit={handleUpdateSubmit}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={updateFormData.name}
+                  onChange={handleUpdateFormChange}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={updateFormData.email}
+                  onChange={handleUpdateFormChange}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  Bio
+                </label>
+                <textarea
+                  name="bio"
+                  value={updateFormData.bio}
+                  onChange={handleUpdateFormChange}
+                  rows="3"
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd',
+                    resize: 'vertical'
+                  }}
+                  placeholder="Tell us about yourself..."
+                />
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  LinkedIn URL
+                </label>
+                <input
+                  type="url"
+                  name="linkedin"
+                  value={updateFormData.linkedin}
+                  onChange={handleUpdateFormChange}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }}
+                  placeholder="https://linkedin.com/in/yourprofile"
+                />
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  GitHub URL
+                </label>
+                <input
+                  type="url"
+                  name="github_url"
+                  value={updateFormData.github_url}
+                  onChange={handleUpdateFormChange}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }}
+                  placeholder="https://github.com/yourusername"
+                />
+              </div>
+
+              {user?.role === 'student' && (
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Portfolio URL
+                  </label>
+                  <input
+                    type="url"
+                    name="portfolio_url"
+                    value={updateFormData.portfolio_url}
+                    onChange={handleUpdateFormChange}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd'
+                    }}
+                    placeholder="https://yourportfolio.com"
+                  />
+                </div>
+              )}
+
+              {user?.role === 'company' && (
+                <>
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                      Company Website
+                    </label>
+                    <input
+                      type="url"
+                      name="company_url"
+                      value={updateFormData.company_url}
+                      onChange={handleUpdateFormChange}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        border: '1px solid #ddd'
+                      }}
+                      placeholder="https://yourcompany.com"
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                      Careers Page URL
+                    </label>
+                    <input
+                      type="url"
+                      name="careers_url"
+                      value={updateFormData.careers_url}
+                      onChange={handleUpdateFormChange}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        border: '1px solid #ddd'
+                      }}
+                      placeholder="https://yourcompany.com/careers"
+                    />
+                  </div>
+                </>
+              )}
+
+              {user?.role === 'guide' && (
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Academic Profile URL
+                  </label>
+                  <input
+                    type="url"
+                    name="academic_url"
+                    value={updateFormData.academic_url}
+                    onChange={handleUpdateFormChange}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd'
+                    }}
+                    placeholder="https://scholar.google.com/citations?user=..."
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  style={{
+                    backgroundColor: '#f5f5f5',
+                    color: '#333',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  style={{
+                    backgroundColor: '#1976d2',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '4px',
+                    cursor: updating ? 'not-allowed' : 'pointer',
+                    opacity: updating ? 0.7 : 1
+                  }}
+                >
+                  {updating ? 'Updating...' : 'Update Profile'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
