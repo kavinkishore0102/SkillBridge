@@ -8,8 +8,8 @@ import { utils, authAPI, dashboardAPI } from './utils/api';
 const getDashboardConfig = (role, data, user, theme) => {
   const configs = {
     student: {
-      title: '🎓 Student Dashboard',
-      backgroundColor: theme.colors.primary + '20',
+      title: 'Student Dashboard',
+      backgroundColor: theme.colors.surface,
       stats: [
         { key: 'applied_projects', label: 'Applications', color: theme.colors.primary, value: data?.applied_projects || 0 },
         { key: 'submissions', label: 'Submissions', color: theme.colors.primary, value: data?.submissions || 0 },
@@ -18,28 +18,28 @@ const getDashboardConfig = (role, data, user, theme) => {
         { key: 'rejected', label: 'Rejected', color: theme.colors.danger, value: data?.submission_summary?.rejected || 0 },
       ],
       profileLinks: [
-        { label: 'LinkedIn', url: user?.linkedin, icon: '💼' },
-        { label: 'GitHub', url: user?.github_url, icon: '🐱' },
-        { label: 'Portfolio', url: user?.portfolio_url, icon: '🌐' },
+        { label: 'LinkedIn', url: user?.linkedin, icon: '' },
+        { label: 'GitHub', url: user?.github_url, icon: '' },
+        { label: 'Portfolio', url: user?.portfolio_url, icon: '' },
       ]
     },
     company: {
-      title: '🏢 Company Dashboard',
-      backgroundColor: theme.colors.success + '20',
+      title: 'Company Dashboard',
+      backgroundColor: theme.colors.surface,
       stats: [
         { key: 'posted_projects', label: 'Posted Projects', color: theme.colors.success, value: data?.posted_projects || 0 },
         { key: 'total_applicants', label: 'Total Applicants', color: theme.colors.primary, value: data?.total_applicants || 0 },
         { key: 'total_submissions', label: 'Total Submissions', color: theme.colors.warning, value: data?.total_submissions || 0 },
       ],
       profileLinks: [
-        { label: 'Company Website', url: user?.company_url, icon: '🏢' },
-        { label: 'LinkedIn', url: user?.linkedin, icon: '💼' },
-        { label: 'Careers Page', url: user?.careers_url, icon: '💼' },
+        { label: 'Company Website', url: user?.company_url, icon: '' },
+        { label: 'LinkedIn', url: user?.linkedin, icon: '' },
+        { label: 'Careers Page', url: user?.careers_url, icon: '' },
       ]
     },
     guide: {
-      title: '👨‍🏫 Guide Dashboard',
-      backgroundColor: theme.colors.warning + '20',
+      title: 'Guide Dashboard',
+      backgroundColor: theme.colors.surface,
       stats: [
         { key: 'assigned_projects', label: 'Assigned Projects', color: theme.colors.warning, value: data?.assigned_projects || 0 },
         { key: 'total_submissions', label: 'Total Submissions', color: theme.colors.primary, value: data?.total_submissions || 0 },
@@ -47,7 +47,7 @@ const getDashboardConfig = (role, data, user, theme) => {
         { key: 'completed_reviews', label: 'Completed Reviews', color: theme.colors.success, value: data?.completed_reviews || 0 },
       ],
       profileLinks: [
-        { label: 'LinkedIn', url: user?.linkedin, icon: '💼' },
+        { label: 'LinkedIn', url: user?.linkedin, icon: '' },
         { label: 'GitHub', url: user?.github_url, icon: '🐱' },
         { label: 'Academic Profile', url: user?.academic_url, icon: '🎓' },
       ]

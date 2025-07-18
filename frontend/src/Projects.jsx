@@ -485,8 +485,12 @@ function Projects() {
                   </button>
                 )}
                 <button
+                  onClick={() => {
+                    console.log('Navigating to project details:', project.id);
+                    navigate(`/projects/${project.id}`);
+                  }}
                   style={{
-                    backgroundColor: theme.colors.primary,
+                    backgroundColor: theme.colors.blue,
                     color: 'white',
                     border: 'none',
                     padding: '8px 16px',
@@ -494,6 +498,14 @@ function Projects() {
                     cursor: 'pointer',
                     fontSize: '14px',
                     transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.opacity = '0.9';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.opacity = '1';
+                    e.target.style.transform = 'translateY(0)';
                   }}
                 >
                   View Details

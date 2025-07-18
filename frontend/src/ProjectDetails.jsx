@@ -29,26 +29,14 @@ function ProjectDetails() {
       const response = await projectAPI.getProjectById(id, token);
       setProject(response.data);
       
-      // Check if user has already applied (if endpoint exists)
-      if (user.role === 'student') {
-        checkApplicationStatus();
-      }
+      // For now, we'll assume the user hasn't applied 
+      // TODO: Implement proper application status check
+      setHasApplied(false);
     } catch (error) {
       console.error('Error fetching project details:', error);
       navigate('/projects');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const checkApplicationStatus = async () => {
-    try {
-      const token = utils.getToken();
-      const response = await projectAPI.checkApplicationStatus(id, token);
-      setHasApplied(response.data.hasApplied);
-    } catch (error) {
-      // If endpoint doesn't exist, assume not applied
-      setHasApplied(false);
     }
   };
 

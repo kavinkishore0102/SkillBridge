@@ -35,19 +35,20 @@ export const ThemeProvider = ({ children }) => {
     isDarkMode,
     toggleTheme,
     colors: {
-      primary: isDarkMode ? '#1976d2' : '#2196f3',
-      secondary: isDarkMode ? '#f48fb1' : '#e91e63',
-      background: isDarkMode ? '#1a1a1a' : '#ffffff',
-      surface: isDarkMode ? '#2a2a2a' : '#f5f5f5',
-      card: isDarkMode ? '#3a3a3a' : '#ffffff',
-      text: isDarkMode ? '#ffffff' : '#333333',
-      textSecondary: isDarkMode ? '#cccccc' : '#666666',
-      border: isDarkMode ? '#555555' : '#e0e0e0',
-      success: isDarkMode ? '#4caf50' : '#388e3c',
-      warning: isDarkMode ? '#ff9800' : '#f57c00',
-      danger: isDarkMode ? '#f44336' : '#d32f2f',
-      error: isDarkMode ? '#f44336' : '#d32f2f',
-      info: isDarkMode ? '#2196f3' : '#1976d2'
+      primary: isDarkMode ? '#00b894' : '#009966',
+      secondary: isDarkMode ? '#00cec9' : '#00774c',
+      background: isDarkMode ? '#0F172A' : '#F8FAFC',
+      surface: isDarkMode ? '#1E293B' : '#FFFFFF',
+      card: isDarkMode ? '#334155' : '#FFFFFF',
+      text: isDarkMode ? '#F1F5F9' : '#0F172A',
+      textSecondary: isDarkMode ? '#94A3B8' : '#64748B',
+      border: isDarkMode ? '#475569' : '#E2E8F0',
+      success: isDarkMode ? '#00b894' : '#009966',
+      warning: isDarkMode ? '#F59E0B' : '#D97706',
+      danger: isDarkMode ? '#EF4444' : '#DC2626',
+      error: isDarkMode ? '#EF4444' : '#DC2626',
+      info: isDarkMode ? '#00cec9' : '#00b894',
+      blue: isDarkMode ? '#3B82F6' : '#2563EB'
     },
     shadows: {
       card: isDarkMode 

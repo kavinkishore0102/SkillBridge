@@ -87,6 +87,11 @@ export const projectAPI = {
     return await apiCall('/projects', 'GET');
   },
 
+  // Get project by ID
+  getProjectById: async (projectId, token = null) => {
+    return await apiCall(`/projects/${projectId}`, 'GET', null, token);
+  },
+
   // Get project applicants (company only)
   getProjectApplicants: async (projectId, token) => {
     return await apiCall(`/projects/${projectId}/applicants`, 'GET', null, token);
