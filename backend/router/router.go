@@ -33,6 +33,7 @@ func SetupRouter() *gin.Engine {
 
 	// 🔍 Publicly accessible project listing
 	router.GET("/api/projects", controller.GetAllProjects)
+	router.GET("/api/projects/:id", controller.GetProjectById)
 	router.GET("/api/student/:id", controller.GetPublicStudentProfile)
 	router.GET("/api/company/:id", controller.GetPublicCompanyProfile)
 

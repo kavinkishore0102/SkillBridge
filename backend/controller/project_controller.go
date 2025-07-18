@@ -41,7 +41,22 @@ func GetAllProjects(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"projects": projects})
+}
 
+func GetProjectById(c *gin.Context) {
+	projectID := c.Param("id")
+	
+	var project models.Project
+	if err := DB.First(&project, projectID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch project"})
+		}
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{"data": project})
 }
 
 func ApplyToProject(c *gin.Context) {

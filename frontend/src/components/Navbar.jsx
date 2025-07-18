@@ -41,23 +41,24 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { name: 'Projects', path: '/projects', icon: '🚀' },
-    { name: 'Dashboard', path: '/dashboard', icon: '📊' },
-    ...(user?.role === 'student' ? [{ name: 'Applications', path: '/applied-projects', icon: '📋' }] : []),
-    ...(user?.role === 'student' ? [{ name: 'Submissions', path: '/submissions', icon: '📝' }] : []),
-    { name: 'Profile', path: '/profile', icon: '👤' },
+    { name: 'Projects', path: '/projects', icon: '' },
+    { name: 'Dashboard', path: '/dashboard', icon: '' },
+    ...(user?.role === 'student' ? [{ name: 'Applications', path: '/applied-projects', icon: '' }] : []),
+    ...(user?.role === 'student' ? [{ name: 'Submissions', path: '/submissions', icon: '' }] : []),
+    { name: 'Profile', path: '/profile', icon: '' },
   ];
 
   const isActive = (path) => location.pathname === path;
 
   return (
     <nav style={{
-      background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`,
-      boxShadow: theme.shadows.navbar,
+      background: theme.colors.surface,
+      borderBottom: `1px solid ${theme.colors.border}`,
       position: 'sticky',
       top: 0,
       zIndex: 1000,
-      transition: 'all 0.3s ease'
+      backdropFilter: 'blur(8px)',
+      backgroundColor: theme.colors.surface + 'F0'
     }}>
       <div style={{
         maxWidth: '1200px',
@@ -77,26 +78,45 @@ const Navbar = () => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
+              gap: '12px',
               cursor: 'pointer',
-              color: 'white',
               fontSize: '20px',
-              fontWeight: 'bold',
-              transition: 'transform 0.2s ease'
+              fontWeight: '600',
+              transition: 'all 0.3s ease',
+              padding: '4px 8px',
+              borderRadius: '8px'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.backgroundColor = theme.colors.primary + '10';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
           >
-            <img 
-              src="/logo.svg" 
-              alt="SkillBridge Logo" 
-              style={{ 
-                width: '40px', 
-                height: '40px',
-                filter: 'brightness(0) invert(1)' // Makes the logo white
-              }} 
-            />
-            <span>SkillBridge</span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '40px',
+              height: '40px',
+              transition: 'transform 0.3s ease'
+            }}>
+              <img 
+                src="/skillbridge-logo.svg" 
+                alt="SkillBridge Logo" 
+                style={{ 
+                  width: '36px', 
+                  height: '36px',
+                  transition: 'all 0.3s ease'
+                }} 
+              />
+            </div>
+            <span style={{ 
+              color: theme.colors.primary,
+              transition: 'color 0.3s ease'
+            }}>SkillBridge</span>
           </div>
 
           {/* Desktop Navigation */}
@@ -117,32 +137,28 @@ const Navbar = () => {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      background: isActive(item.path) ? 'rgba(255,255,255,0.2)' : 'transparent',
+                      gap: '6px',
+                      background: isActive(item.path) ? theme.colors.primary : 'transparent',
                       border: 'none',
-                      color: 'white',
-                      padding: '8px 16px',
-                      borderRadius: '20px',
+                      color: isActive(item.path) ? 'white' : theme.colors.text,
+                      padding: '8px 12px',
+                      borderRadius: '6px',
                       cursor: 'pointer',
                       fontSize: '14px',
                       fontWeight: '500',
-                      transition: 'all 0.2s ease',
-                      transform: isActive(item.path) ? 'scale(1.05)' : 'scale(1)'
+                      transition: 'all 0.2s ease'
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive(item.path)) {
-                        e.target.style.background = 'rgba(255,255,255,0.1)';
-                        e.target.style.transform = 'scale(1.05)';
+                        e.target.style.background = theme.colors.border;
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isActive(item.path)) {
                         e.target.style.background = 'transparent';
-                        e.target.style.transform = 'scale(1)';
                       }
                     }}
                   >
-                    <span>{item.icon}</span>
                     <span>{item.name}</span>
                   </button>
                 ))}
@@ -153,31 +169,29 @@ const Navbar = () => {
             <button
               onClick={theme.toggleTheme}
               style={{
-                background: 'rgba(255,255,255,0.1)',
-                border: 'none',
-                color: 'white',
-                padding: '8px',
-                borderRadius: '50%',
+                background: 'transparent',
+                border: `1px solid ${theme.colors.border}`,
+                color: theme.colors.text,
+                padding: '6px',
+                borderRadius: '4px',
                 cursor: 'pointer',
-                fontSize: '20px',
-                width: '40px',
-                height: '40px',
+                fontSize: '16px',
+                width: '32px',
+                height: '32px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                e.target.style.background = 'rgba(255,255,255,0.2)';
-                e.target.style.transform = 'scale(1.1)';
+                e.target.style.background = theme.colors.border;
               }}
               onMouseLeave={(e) => {
-                e.target.style.background = 'rgba(255,255,255,0.1)';
-                e.target.style.transform = 'scale(1)';
+                e.target.style.background = 'transparent';
               }}
               title={theme.isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
-              {theme.isDarkMode ? '☀️' : '🌙'}
+              {theme.isDarkMode ? '☀' : '🌙'}
             </button>
 
             {/* Notifications */}
@@ -185,15 +199,15 @@ const Navbar = () => {
               <button
                 onClick={toggleNotifications}
                 style={{
-                  background: 'rgba(255,255,255,0.1)',
-                  border: 'none',
-                  color: 'white',
-                  padding: '8px',
-                  borderRadius: '50%',
+                  background: 'transparent',
+                  border: `1px solid ${theme.colors.border}`,
+                  color: theme.colors.text,
+                  padding: '6px',
+                  borderRadius: '4px',
                   cursor: 'pointer',
-                  fontSize: '20px',
-                  width: '40px',
-                  height: '40px',
+                  fontSize: '16px',
+                  width: '32px',
+                  height: '32px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -201,12 +215,10 @@ const Navbar = () => {
                   position: 'relative'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.background = 'rgba(255,255,255,0.2)';
-                  e.target.style.transform = 'scale(1.1)';
+                  e.target.style.background = theme.colors.border;
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.background = 'rgba(255,255,255,0.1)';
-                  e.target.style.transform = 'scale(1)';
+                  e.target.style.background = 'transparent';
                 }}
                 title="Notifications"
               >
@@ -381,7 +393,7 @@ const Navbar = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '10px',
-                  color: 'white'
+                  color: theme.colors.text
                 }}>
                   {user.picture && (
                     <img 
@@ -391,7 +403,7 @@ const Navbar = () => {
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        border: '2px solid rgba(255,255,255,0.3)'
+                        border: `2px solid ${theme.colors.border}`
                       }}
                     />
                   )}
@@ -400,12 +412,16 @@ const Navbar = () => {
                     flexDirection: 'column',
                     alignItems: 'flex-start'
                   }}>
-                    <span style={{ fontSize: '14px', fontWeight: '500' }}>
+                    <span style={{ 
+                      fontSize: '14px', 
+                      fontWeight: '500',
+                      color: theme.colors.text
+                    }}>
                       {user.name}
                     </span>
                     <span style={{ 
                       fontSize: '12px', 
-                      opacity: 0.8,
+                      color: theme.colors.textSecondary,
                       textTransform: 'capitalize'
                     }}>
                       {user.role}
@@ -416,23 +432,23 @@ const Navbar = () => {
                 <button
                   onClick={handleLogout}
                   style={{
-                    background: 'rgba(255,255,255,0.1)',
-                    border: 'none',
-                    color: 'white',
-                    padding: '8px 16px',
-                    borderRadius: '20px',
+                    background: 'transparent',
+                    border: `1px solid ${theme.colors.danger}`,
+                    color: theme.colors.danger,
+                    padding: '6px 12px',
+                    borderRadius: '4px',
                     cursor: 'pointer',
-                    fontSize: '14px',
+                    fontSize: '12px',
                     fontWeight: '500',
                     transition: 'all 0.2s ease'
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.background = 'rgba(255,255,255,0.2)';
-                    e.target.style.transform = 'scale(1.05)';
+                    e.target.style.background = theme.colors.danger;
+                    e.target.style.color = 'white';
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.background = 'rgba(255,255,255,0.1)';
-                    e.target.style.transform = 'scale(1)';
+                    e.target.style.background = 'transparent';
+                    e.target.style.color = theme.colors.danger;
                   }}
                 >
                   Logout

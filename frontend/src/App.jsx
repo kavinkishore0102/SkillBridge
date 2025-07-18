@@ -12,6 +12,7 @@ import AppliedProjects from './AppliedProjects';
 import ProjectDetails from './ProjectDetails';
 import PostProject from './PostProject';
 import Submissions from './Submissions';
+import './styles/professional.css';
 
 function AppContent() {
   const location = useLocation();
