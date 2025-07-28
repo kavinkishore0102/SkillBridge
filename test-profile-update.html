@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Update Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, textarea, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin: 20px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Profile Update Test</h1>
+        
+        <!-- Login Section -->
+        <div id="loginSection">
+            <h3>Login First</h3>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="loginEmail" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="loginPassword" placeholder="Enter your password">
+            </div>
+            <button onclick="login()">Login</button>
+        </div>
+
+        <!-- Profile Update Section -->
+        <div id="profileSection" style="display: none;">
+            <h3>Update Profile</h3>
+            <div class="form-group">
+                <label>Name:</label>
+                <input type="text" id="name" placeholder="Full Name">
+            </div>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="email" placeholder="Email" disabled>
+            </div>
+            <div class="form-group">
+                <label>Phone:</label>
+                <input type="tel" id="phone" placeholder="Phone Number">
+            </div>
+            <div class="form-group">
+                <label>Bio:</label>
+                <textarea id="bio" placeholder="Tell us about yourself" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>LinkedIn:</label>
+                <input type="url" id="linkedin" placeholder="LinkedIn URL">
+            </div>
+            <div class="form-group">
+                <label>GitHub URL:</label>
+                <input type="url" id="github_url" placeholder="GitHub URL">
+            </div>
+            <div class="form-group">
+                <label>Portfolio URL:</label>
+                <input type="url" id="portfolio_url" placeholder="Portfolio URL">
+            </div>
+            
+            <!-- Student Fields -->
+            <div id="studentFields" style="display: none;">
+                <h4>Student Information</h4>
+                <div class="form-group">
+                    <label>University:</label>
+                    <input type="text" id="university" placeholder="University Name">
+                </div>
+                <div class="form-group">
+                    <label>Major:</label>
+                    <input type="text" id="major" placeholder="Major/Field of Study">
+                </div>
+                <div class="form-group">
+                    <label>Year:</label>
+                    <select id="year">
+                        <option value="">Select Year</option>
+                        <option value="1st Year">1st Year</option>
+                        <option value="2nd Year">2nd Year</option>
+                        <option value="3rd Year">3rd Year</option>
+                        <option value="4th Year">4th Year</option>
+                        <option value="Graduate">Graduate</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Company Fields -->
+            <div id="companyFields" style="display: none;">
+                <h4>Company Information</h4>
+                <div class="form-group">
+                    <label>Company Name:</label>
+                    <input type="text" id="company_name" placeholder="Company Name">
+                </div>
+                <div class="form-group">
+                    <label>Position:</label>
+                    <input type="text" id="position" placeholder="Your Position">
+                </div>
+            </div>
+
+            <button onclick="updateProfile()">Update Profile</button>
+            <button onclick="getProfile()" style="background: #28a745;">Get Current Profile</button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        let authToken = '';
+        let currentUser = null;
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    showResult('Login successful!', 'success');
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('profileSection').style.display = 'block';
+                    getProfile();
+                } else {
+                    showResult(`Login failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function getProfile() {
+            try {
+                const response = await fetch(`${API_BASE}/profile`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentUser = data;
+                    populateForm(data);
+                    showResult('Profile loaded successfully!', 'success');
+                } else {
+                    showResult(`Get profile failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`Get profile error: ${error.message}`, 'error');
+            }
+        }
+
+        function populateForm(user) {
+            document.getElementById('name').value = user.name || '';
+            document.getElementById('email').value = user.email || '';
+            document.getElementById('phone').value = user.phone || '';
+            document.getElementById('bio').value = user.bio || '';
+            document.getElementById('linkedin').value = user.linkedin || '';
+            document.getElementById('github_url').value = user.github_url || '';
+            document.getElementById('portfolio_url').value = user.portfolio_url || '';
+            
+            // Show role-specific fields
+            if (user.role === 'student') {
+                document.getElementById('studentFields').style.display = 'block';
+                document.getElementById('university').value = user.university || '';
+                document.getElementById('major').value = user.major || '';
+                document.getElementById('year').value = user.year || '';
+            } else if (user.role === 'company') {
+                document.getElementById('companyFields').style.display = 'block';
+                document.getElementById('company_name').value = user.company_name || '';
+                document.getElementById('position').value = user.position || '';
+            }
+        }
+
+        async function updateProfile() {
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                bio: document.getElementById('bio').value,
+                linkedin: document.getElementById('linkedin').value,
+                github_url: document.getElementById('github_url').value,
+                portfolio_url: document.getElementById('portfolio_url').value,
+                role: currentUser?.role || ''
+            };
+
+            // Add role-specific fields
+            if (currentUser?.role === 'student') {
+                formData.university = document.getElementById('university').value;
+                formData.major = document.getElementById('major').value;
+                formData.year = document.getElementById('year').value;
+            } else if (currentUser?.role === 'company') {
+                formData.company_name = document.getElementById('company_name').value;
+                formData.position = document.getElementById('position').value;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(`Profile updated successfully! ${JSON.stringify(data, null, 2)}`, 'success');
+                    if (data.user) {
+                        currentUser = data.user;
+                    }
+                } else {
+                    showResult(`Update failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`Update error: ${error.message}`, 'error');
+            }
+        }
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `<pre>${message}</pre>`;
+        }
+    </script>
+</body>
+</html>

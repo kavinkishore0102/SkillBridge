@@ -50,17 +50,22 @@ function EditProfile() {
 
     try {
       const token = utils.getToken();
-      await authAPI.updateProfile(formData, token);
+      const response = await authAPI.updateProfile(formData, token);
       
-      // Update local storage
-      const updatedUser = { ...user, ...formData };
-      utils.setUser(updatedUser);
+      // Update local storage with the response data
+      if (response.user) {
+        utils.saveUser(response.user);
+      } else {
+        // Fallback to merging current user with form data
+        const updatedUser = { ...user, ...formData };
+        utils.saveUser(updatedUser);
+      }
       
-      addNotification('Profile updated successfully!', 'Just now');
+      addNotification('Profile updated successfully!', 'success');
       navigate('/profile');
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Failed to update profile. Please try again.');
+      addNotification(`Failed to update profile: ${error.message}`, 'error');
     } finally {
       setSaving(false);
     }

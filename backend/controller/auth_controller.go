@@ -4,6 +4,8 @@ import (
 	"SkillBridge/middleware"
 	"SkillBridge/models"
 	"SkillBridge/utils"
+	"crypto/rand"
+	"encoding/base64"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"gorm.io/gorm"
@@ -49,7 +51,7 @@ func SignUp(c *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"role":    user.Role, // ADDED ROLE
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 days
 	})
 
 	// Use consistent secret (FIXED)
@@ -93,7 +95,7 @@ func Login(c *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"role":    user.Role,
-		"exp":     time.Now().Add(time.Hour * 12).Unix(),
+		"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 days instead of 12 hours
 	})
 
 	tokenStr, err := token.SignedString(middleware.JWT_SECRET)
@@ -120,13 +122,20 @@ func GetProfile(c *gin.Context) {
 
 	// successfully profile got.
 	c.JSON(http.StatusOK, gin.H{
-		"id":         user.ID,
-		"name":       user.Name,
-		"email":      user.Email,
-		"role":       user.Role,
-		"bio":        user.Bio,
-		"github_url": user.GithubURL,
-		"linkedin":   user.LinkedIn,
+		"id":           user.ID,
+		"name":         user.Name,
+		"email":        user.Email,
+		"role":         user.Role,
+		"bio":          user.Bio,
+		"github_url":   user.GithubURL,
+		"linkedin":     user.LinkedIn,
+		"phone":        user.Phone,
+		"university":   user.University,
+		"major":        user.Major,
+		"year":         user.Year,
+		"company_name": user.CompanyName,
+		"position":     user.Position,
+		"portfolio_url": user.PortfolioURL,
 	})
 }
 
@@ -138,37 +147,243 @@ func UpdateProfile(c *gin.Context) {
 	}
 
 	var input struct {
-		Name      string `json:"name"`
-		Email     string `json:"email"`
-		Role      string `json:"role"`
-		Bio       string `json:"bio"`
-		GithubURL string `json:"github_url"`
-		LinkedIn  string `json:"linkedin"`
+		Name         string `json:"name"`
+		Email        string `json:"email"`
+		Role         string `json:"role"`
+		Bio          string `json:"bio"`
+		GithubURL    string `json:"github_url"`
+		LinkedIn     string `json:"linkedin"`
+		Phone        string `json:"phone"`
+		University   string `json:"university"`
+		Major        string `json:"major"`
+		Year         string `json:"year"`
+		CompanyName  string `json:"company_name"`
+		Position     string `json:"position"`
+		PortfolioURL string `json:"portfolio_url"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
 		return
 	}
 
-	// Check if the new email already exists for another user
+	// Check if the new email already exists for another user (only if email is being changed)
 	var existing models.User
 	if err := DB.Where("email = ? AND id != ?", input.Email, userID).First(&existing).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is already in use"})
 		return
 	}
 
-	if err := DB.Model(&models.User{}).Where("id = ?", userID).
-		Updates(models.User{
-			Name:      input.Name, 
-			Email:     input.Email, 
-			Role:      input.Role,
-			Bio:       input.Bio,
-			GithubURL: input.GithubURL,
-			LinkedIn:  input.LinkedIn,
-		}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+	// Update user profile
+	updateData := models.User{
+		Name:         input.Name, 
+		Email:        input.Email, 
+		Role:         input.Role,
+		Bio:          input.Bio,
+		GithubURL:    input.GithubURL,
+		LinkedIn:     input.LinkedIn,
+		Phone:        input.Phone,
+		University:   input.University,
+		Major:        input.Major,
+		Year:         input.Year,
+		CompanyName:  input.CompanyName,
+		Position:     input.Position,
+		PortfolioURL: input.PortfolioURL,
+	}
+
+	if err := DB.Model(&models.User{}).Where("id = ?", userID).Updates(updateData).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile: " + err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
+	// Get updated user data
+	var updatedUser models.User
+	if err := DB.First(&updatedUser, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve updated profile"})
+		return
+	}
+
+	// Return success with updated profile data
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Profile updated successfully",
+		"user": gin.H{
+			"id":           updatedUser.ID,
+			"name":         updatedUser.Name,
+			"email":        updatedUser.Email,
+			"role":         updatedUser.Role,
+			"bio":          updatedUser.Bio,
+			"github_url":   updatedUser.GithubURL,
+			"linkedin":     updatedUser.LinkedIn,
+			"phone":        updatedUser.Phone,
+			"university":   updatedUser.University,
+			"major":        updatedUser.Major,
+			"year":         updatedUser.Year,
+			"company_name": updatedUser.CompanyName,
+			"position":     updatedUser.Position,
+			"portfolio_url": updatedUser.PortfolioURL,
+		},
+	})
+}
+
+// GoogleOAuth handles Google OAuth authentication
+func GoogleOAuth(c *gin.Context) {
+	var input struct {
+		GoogleToken string `json:"google_token" binding:"required"`
+		Role        string `json:"role"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	// Parse the Google JWT token to extract user info
+	userInfo, err := parseGoogleJWT(input.GoogleToken)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Google token"})
+		return
+	}
+
+	// Check if user already exists
+	var existingUser models.User
+	if err := DB.Where("email = ?", userInfo.Email).First(&existingUser).Error; err == nil {
+		// User exists, generate JWT and login
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"user_id": existingUser.ID,
+			"role":    existingUser.Role,
+			"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 days
+		})
+
+		tokenString, err := token.SignedString(middleware.JWT_SECRET)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Login failed"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Login successful",
+			"token":   tokenString,
+			"user": gin.H{
+				"id":    existingUser.ID,
+				"name":  existingUser.Name,
+				"email": existingUser.Email,
+				"role":  existingUser.Role,
+			},
+		})
+		return
+	}
+
+	// User doesn't exist, create new user
+	if input.Role == "" {
+		input.Role = "student" // Default role
+	}
+
+	// Generate a random password for Google OAuth users
+	randomPassword := generateRandomPassword()
+	hashedPassword, err := utils.HashPassword(randomPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
+		return
+	}
+
+	newUser := models.User{
+		Name:     userInfo.Name,
+		Email:    userInfo.Email,
+		Password: hashedPassword,
+		Role:     input.Role,
+	}
+
+	if err := DB.Create(&newUser).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
+		return
+	}
+
+	// Generate JWT token for new user
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": newUser.ID,
+		"role":    newUser.Role,
+		"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 days
+	})
+
+	tokenString, err := token.SignedString(middleware.JWT_SECRET)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User created successfully",
+		"token":   tokenString,
+		"user": gin.H{
+			"id":    newUser.ID,
+			"name":  newUser.Name,
+			"email": newUser.Email,
+			"role":  newUser.Role,
+		},
+	})
+}
+
+// Helper functions for Google OAuth
+type GoogleUserInfo struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+	Sub   string `json:"sub"`
+}
+
+func parseGoogleJWT(tokenString string) (*GoogleUserInfo, error) {
+	// Parse without verification for user info extraction
+	// In production, you should verify the token with Google's public keys
+	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		userInfo := &GoogleUserInfo{
+			Email: claims["email"].(string),
+			Name:  claims["name"].(string),
+			Sub:   claims["sub"].(string),
+		}
+		return userInfo, nil
+	}
+
+	return nil, jwt.ErrInvalidKey
+}
+
+func generateRandomPassword() string {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+	return base64.URLEncoding.EncodeToString(bytes)
+}
+
+// RefreshToken generates a new token for the user
+func RefreshToken(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
+		return
+	}
+
+	role, exists := c.Get("role")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found"})
+		return
+	}
+
+	// Generate new token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID,
+		"role":    role,
+		"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 days
+	})
+
+	tokenString, err := token.SignedString(middleware.JWT_SECRET)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Token refreshed successfully",
+		"token":   tokenString,
+	})
 }

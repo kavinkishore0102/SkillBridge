@@ -76,7 +76,25 @@ export const authAPI = {
 
   // Update user profile
   updateProfile: async (userData, token) => {
-    return await apiCall('/profile', 'PUT', userData, token);
+    try {
+      return await apiCall('/profile', 'PUT', userData, token);
+    } catch (error) {
+      // If token expired, try to refresh it
+      if (error.message.includes('expired') || error.message.includes('Invalid or expired token')) {
+        try {
+          const refreshResponse = await apiCall('/refresh-token', 'POST', null, token);
+          utils.saveToken(refreshResponse.token);
+          // Retry with new token
+          return await apiCall('/profile', 'PUT', userData, refreshResponse.token);
+        } catch (refreshError) {
+          // If refresh fails, user needs to login again
+          utils.logout();
+          window.location.href = '/';
+          throw new Error('Session expired. Please login again.');
+        }
+      }
+      throw error;
+    }
   }
 };
 
@@ -85,6 +103,11 @@ export const projectAPI = {
   // Get all projects
   getAllProjects: async () => {
     return await apiCall('/projects', 'GET');
+  },
+
+  // Get project by ID
+  getProjectById: async (projectId, token = null) => {
+    return await apiCall(`/projects/${projectId}`, 'GET', null, token);
   },
 
   // Get project applicants (company only)

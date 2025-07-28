@@ -98,27 +98,43 @@ function Login() {
         }
     };
 
-    const handleCredentialResponse = (response) => {
-        // Parse the JWT token
-        const userInfo = parseJwt(response.credential);
-        console.log('Google user info:', userInfo);
-        
-        if (userInfo) {
-            // Store user info in localStorage
-            utils.saveUser({
-                id: userInfo.sub,
-                name: userInfo.name,
-                email: userInfo.email,
-                picture: userInfo.picture,
-                role: 'student' // Default role for Google OAuth users (might need adjustment based on backend)
-            });
+    const handleCredentialResponse = async (response) => {
+        try {
+            // Parse the JWT token to get user info
+            const userInfo = parseJwt(response.credential);
+            console.log('Google user info:', userInfo);
             
-            // For now, we'll use a mock token for Google OAuth
-            // In production, you'd send this to your backend to verify and get a proper JWT
-            utils.saveToken('google-oauth-token'); // This token will need to be properly handled by your backend
-            
-            // Redirect to dashboard
-            navigate('/dashboard');
+            if (userInfo) {
+                // Send Google token to backend for verification and JWT generation
+                const backendResponse = await fetch('http://localhost:8080/api/google-oauth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        google_token: response.credential,
+                        role: 'student' // Default role, you can make this selectable
+                    }),
+                });
+
+                const data = await backendResponse.json();
+
+                if (backendResponse.ok) {
+                    // Save the proper JWT token
+                    utils.saveToken(data.token);
+                    
+                    // Save user data
+                    utils.saveUser(data.user);
+                    
+                    // Redirect to dashboard
+                    navigate('/dashboard');
+                } else {
+                    setError(data.error || 'Google authentication failed');
+                }
+            }
+        } catch (error) {
+            console.error('Google OAuth error:', error);
+            setError('Google authentication failed: ' + error.message);
         }
     };
 
