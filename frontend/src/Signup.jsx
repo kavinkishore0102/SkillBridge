@@ -17,6 +17,7 @@ function Signup() {
     const [error, setError] = useState('');
     const [showGoogleRoleModal, setShowGoogleRoleModal] = useState(false);
     const [googleUserInfo, setGoogleUserInfo] = useState(null);
+    const [googleCredential, setGoogleCredential] = useState(null);
     const [selectedGoogleRole, setSelectedGoogleRole] = useState('student');
 
     // Keep this entire block from Stashed changes
@@ -133,55 +134,67 @@ function Signup() {
     };
 
     // Handle Google OAuth response
-    const handleCredentialResponse = (response) => {
-        // Parse the JWT token
-        const userInfo = parseJwt(response.credential);
-        console.log('Google user info:', userInfo);
-        
-        if (userInfo) {
-            // Store user info temporarily and show role selection modal
-            setGoogleUserInfo(userInfo);
-            setShowGoogleRoleModal(true);
+    const handleCredentialResponse = async (response) => {
+        try {
+            // Parse the JWT token
+            const userInfo = parseJwt(response.credential);
+            console.log('Google user info:', userInfo);
+            
+            if (userInfo) {
+                // Store user info temporarily and show role selection modal
+                setGoogleUserInfo(userInfo);
+                setGoogleCredential(response.credential); // Store the credential
+                setShowGoogleRoleModal(true);
+            }
+        } catch (error) {
+            console.error('Google OAuth error:', error);
+            setError('Google authentication failed: ' + error.message);
         }
     };
 
     // Handle Google OAuth role selection
     const handleGoogleRoleSelection = async () => {
-        if (!googleUserInfo) return;
+        if (!googleUserInfo || !googleCredential) return;
 
         setLoading(true);
         setError('');
 
         try {
-            // Prepare user data with selected role
-            const userData = {
-                name: googleUserInfo.name,
-                email: googleUserInfo.email,
-                password: 'google-oauth-' + googleUserInfo.sub, // Temporary password for Google OAuth users
-                role: selectedGoogleRole
-            };
-
             console.log('=== GOOGLE OAUTH SIGNUP ===');
-            console.log('userData:', userData);
+            console.log('Selected role:', selectedGoogleRole);
             
-            // Call backend signup API
-            const response = await authAPI.signup(userData);
-            console.log('Google OAuth signup response:', response);
-            
-            // Save token and user info
-            utils.saveToken(response.token);
-            
-            // Get user profile from backend
-            const userProfile = await authAPI.getProfile(response.token);
-            utils.saveUser(userProfile);
-            
-            // Close modal and redirect
-            setShowGoogleRoleModal(false);
-            navigate('/dashboard');
-            
+            // Send Google token to backend for verification and JWT generation
+            const response = await fetch('http://localhost:8080/api/google-oauth', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    google_token: googleCredential,
+                    role: selectedGoogleRole
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                console.log('Google OAuth signup successful:', data);
+                
+                // Save the proper JWT token
+                utils.saveToken(data.token);
+                
+                // Save user data
+                utils.saveUser(data.user);
+                
+                // Close modal and redirect
+                setShowGoogleRoleModal(false);
+                navigate('/dashboard');
+            } else {
+                setError(data.error || 'Google authentication failed');
+            }
         } catch (error) {
             console.error('Google OAuth signup error:', error);
-            setError(error.message || 'Google signup failed. Please try again.');
+            setError('Google authentication failed: ' + error.message);
         } finally {
             setLoading(false);
         }

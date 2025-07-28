@@ -30,6 +30,7 @@ func SetupRouter() *gin.Engine {
 	})
 	router.POST("/api/signup", controller.SignUp)
 	router.POST("/api/login", controller.Login)
+	router.POST("/api/google-oauth", controller.GoogleOAuth)
 
 	// 🔍 Publicly accessible project listing
 	router.GET("/api/projects", controller.GetAllProjects)
@@ -47,6 +48,7 @@ func SetupRouter() *gin.Engine {
 		// Profile routes (for all roles)
 		authorized.GET("/profile", controller.GetProfile)
 		authorized.PUT("/profile", controller.UpdateProfile)
+		authorized.POST("/refresh-token", controller.RefreshToken)
 
 		// 📤 Only 'company' can post projects
 		authorized.POST("/projects", middleware.AuthorizeRoles("company"), controller.PostProject)
