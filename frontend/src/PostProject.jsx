@@ -47,8 +47,28 @@ function PostProject() {
     setPosting(true);
 
     try {
+      // Validation - check required fields
+      const requiredFields = ['title', 'description', 'skills', 'budget', 'deadline'];
+      const missingFields = requiredFields.filter(field => !formData[field] || formData[field].trim() === '');
+      
+      if (missingFields.length > 0) {
+        alert(`Please fill in the following required fields: ${missingFields.join(', ')}`);
+        setPosting(false);
+        return;
+      }
+
       const token = utils.getToken();
-      const response = await projectAPI.createProject(formData, token);
+      
+      // Format the data before sending
+      const projectData = {
+        ...formData,
+        // Convert date string to ISO format with time
+        deadline: formData.deadline ? new Date(formData.deadline + 'T23:59:59.999Z').toISOString() : new Date().toISOString()
+      };
+      
+      console.log('Sending project data:', projectData);
+      
+      const response = await projectAPI.postProject(projectData, token);
       
       addNotification(
         `Project "${formData.title}" posted successfully! Students can now apply.`,
@@ -58,7 +78,8 @@ function PostProject() {
       navigate('/company/projects');
     } catch (error) {
       console.error('Error posting project:', error);
-      alert('Failed to post project. Please try again.');
+      console.error('Error details:', error.message);
+      alert(`Failed to post project: ${error.message}. Please try again.`);
     } finally {
       setPosting(false);
     }

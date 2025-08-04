@@ -126,6 +126,7 @@ func GetProfile(c *gin.Context) {
 		"name":         user.Name,
 		"email":        user.Email,
 		"role":         user.Role,
+		"picture":      user.Picture,
 		"bio":          user.Bio,
 		"github_url":   user.GithubURL,
 		"linkedin":     user.LinkedIn,
@@ -210,6 +211,7 @@ func UpdateProfile(c *gin.Context) {
 			"name":         updatedUser.Name,
 			"email":        updatedUser.Email,
 			"role":         updatedUser.Role,
+			"picture":      updatedUser.Picture,
 			"bio":          updatedUser.Bio,
 			"github_url":   updatedUser.GithubURL,
 			"linkedin":     updatedUser.LinkedIn,
@@ -221,6 +223,64 @@ func UpdateProfile(c *gin.Context) {
 			"position":     updatedUser.Position,
 			"portfolio_url": updatedUser.PortfolioURL,
 		},
+	})
+}
+
+// SetGithubToken allows users to securely set their GitHub token for repository creation
+func SetGithubToken(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
+		return
+	}
+
+	var input struct {
+		GithubToken string `json:"github_token" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
+		return
+	}
+
+	// Validate GitHub token by making a test API call
+	githubService := utils.NewGitHubService(input.GithubToken)
+	userInfo, err := githubService.GetUserInfo()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid GitHub token or insufficient permissions"})
+		return
+	}
+
+	// Update user's GitHub token
+	if err := DB.Model(&models.User{}).Where("id = ?", userID).Update("github_token", input.GithubToken).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save GitHub token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "GitHub token saved successfully",
+		"github_user": userInfo["login"], // Return GitHub username for confirmation
+		"can_create_repos": true,
+	})
+}
+
+// RemoveGithubToken allows users to remove their GitHub token
+func RemoveGithubToken(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
+		return
+	}
+
+	// Remove GitHub token
+	if err := DB.Model(&models.User{}).Where("id = ?", userID).Update("github_token", "").Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove GitHub token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "GitHub token removed successfully",
+		"can_create_repos": false,
 	})
 }
 
@@ -246,7 +306,12 @@ func GoogleOAuth(c *gin.Context) {
 	// Check if user already exists
 	var existingUser models.User
 	if err := DB.Where("email = ?", userInfo.Email).First(&existingUser).Error; err == nil {
-		// User exists, generate JWT and login
+		// User exists, update picture if it's different and generate JWT and login
+		if existingUser.Picture != userInfo.Picture {
+			existingUser.Picture = userInfo.Picture
+			DB.Save(&existingUser)
+		}
+		
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"user_id": existingUser.ID,
 			"role":    existingUser.Role,
@@ -263,10 +328,11 @@ func GoogleOAuth(c *gin.Context) {
 			"message": "Login successful",
 			"token":   tokenString,
 			"user": gin.H{
-				"id":    existingUser.ID,
-				"name":  existingUser.Name,
-				"email": existingUser.Email,
-				"role":  existingUser.Role,
+				"id":      existingUser.ID,
+				"name":    existingUser.Name,
+				"email":   existingUser.Email,
+				"role":    existingUser.Role,
+				"picture": existingUser.Picture,
 			},
 		})
 		return
@@ -290,6 +356,7 @@ func GoogleOAuth(c *gin.Context) {
 		Email:    userInfo.Email,
 		Password: hashedPassword,
 		Role:     input.Role,
+		Picture:  userInfo.Picture,
 	}
 
 	if err := DB.Create(&newUser).Error; err != nil {
@@ -314,19 +381,21 @@ func GoogleOAuth(c *gin.Context) {
 		"message": "User created successfully",
 		"token":   tokenString,
 		"user": gin.H{
-			"id":    newUser.ID,
-			"name":  newUser.Name,
-			"email": newUser.Email,
-			"role":  newUser.Role,
+			"id":      newUser.ID,
+			"name":    newUser.Name,
+			"email":   newUser.Email,
+			"role":    newUser.Role,
+			"picture": newUser.Picture,
 		},
 	})
 }
 
 // Helper functions for Google OAuth
 type GoogleUserInfo struct {
-	Email string `json:"email"`
-	Name  string `json:"name"`
-	Sub   string `json:"sub"`
+	Email   string `json:"email"`
+	Name    string `json:"name"`
+	Picture string `json:"picture"`
+	Sub     string `json:"sub"`
 }
 
 func parseGoogleJWT(tokenString string) (*GoogleUserInfo, error) {
@@ -338,10 +407,16 @@ func parseGoogleJWT(tokenString string) (*GoogleUserInfo, error) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		email, _ := claims["email"].(string)
+		name, _ := claims["name"].(string)
+		picture, _ := claims["picture"].(string)
+		sub, _ := claims["sub"].(string)
+		
 		userInfo := &GoogleUserInfo{
-			Email: claims["email"].(string),
-			Name:  claims["name"].(string),
-			Sub:   claims["sub"].(string),
+			Email:   email,
+			Name:    name,
+			Picture: picture,
+			Sub:     sub,
 		}
 		return userInfo, nil
 	}

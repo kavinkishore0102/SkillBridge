@@ -3,12 +3,15 @@ package controller
 import (
 	"SkillBridge/models"
 	"SkillBridge/utils"
+	"fmt"
+	"io"
+	"strings"
+	"time"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 func PostProject(c *gin.Context) {
@@ -21,17 +24,78 @@ func PostProject(c *gin.Context) {
 
 	var input models.Project
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("PostProject - JSON binding error: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid JSON data: %v", err)})
 		return
 	}
 
 	input.CompanyID = companyID.(uint)
 	if err := DB.Create(&input).Error; err != nil {
+		log.Printf("PostProject - Database error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not post project"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Project posted successfully", "project": input})
+}
+
+// SubmitGithubRepo allows students to submit their GitHub repository URL for an application
+func SubmitGithubRepo(c *gin.Context) {
+	fmt.Println("=== SubmitGithubRepo called ===")
+	
+	studentID := c.GetUint("userID")
+	role := c.GetString("role")
+	if role != "student" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var input struct {
+		ApplicationID uint   `json:"application_id" binding:"required"`
+		GithubRepoURL string `json:"github_repo_url" binding:"required"`
+	}
+
+	// Print raw request body for debugging
+	body, _ := c.GetRawData()
+	fmt.Printf("Raw request body: %s\n", string(body))
+	
+	// Reset the body so it can be read again by ShouldBindJSON
+	c.Request.Body = io.NopCloser(strings.NewReader(string(body)))
+
+	fmt.Printf("Attempting to bind JSON to struct: %+v\n", input)
+	
+	if err := c.ShouldBindJSON(&input); err != nil {
+		fmt.Printf("JSON binding error: %v\n", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	fmt.Printf("Successfully bound request: %+v\n", input)
+
+	// Validate GitHub URL format
+	if !strings.Contains(input.GithubRepoURL, "github.com") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid GitHub repository URL"})
+		return
+	}
+
+	// Find the application and verify ownership
+	var application models.Application
+	if err := DB.Where("id = ? AND student_id = ?", input.ApplicationID, studentID).First(&application).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Application not found or not owned by you"})
+		return
+	}
+
+	// Update the application with GitHub repository URL
+	if err := DB.Model(&application).Update("github_repo_url", input.GithubRepoURL).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit GitHub repository"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "GitHub repository submitted successfully",
+		"application_id": application.ID,
+		"github_repo_url": input.GithubRepoURL,
+	})
 }
 
 func GetAllProjects(c *gin.Context) {
@@ -83,11 +147,19 @@ func ApplyToProject(c *gin.Context) {
 		return
 	}
 
+	// Check if already applied
+	var existingApplication models.Application
+	if err := DB.Where("project_id = ? AND student_id = ?", input.ProjectID, studentID).First(&existingApplication).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Already applied to this project"})
+		return
+	}
+
 	application := models.Application{
-		ProjectID:    input.ProjectID,
-		StudentID:    studentID,
-		Status:       "pending", // Set default status
-		ProjectTitle: project.Title, // Save project title directly
+		ProjectID:     input.ProjectID,
+		StudentID:     studentID,
+		Status:        "pending", // Set default status
+		ProjectTitle:  project.Title, // Save project title directly
+		GithubRepoURL: "", // Empty initially, can be submitted later
 	}
 
 	if err := DB.Create(&application).Error; err != nil {
@@ -95,7 +167,34 @@ func ApplyToProject(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Project applied successfully", "application": application})
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Project applied successfully",
+		"application": application,
+	})
+}
+
+// Helper function to extract GitHub username from URL
+func extractGithubUsername(githubURL string) string {
+	if githubURL == "" {
+		return ""
+	}
+	
+	// Handle different GitHub URL formats
+	// https://github.com/username
+	// https://www.github.com/username
+	// github.com/username
+	
+	parts := strings.Split(githubURL, "/")
+	if len(parts) >= 2 {
+		// Get the last non-empty part
+		for i := len(parts) - 1; i >= 0; i-- {
+			if parts[i] != "" && parts[i] != "github.com" && parts[i] != "www.github.com" && !strings.HasPrefix(parts[i], "http") {
+				return parts[i]
+			}
+		}
+	}
+	
+	return ""
 }
 
 func GetProjectApplicants(c *gin.Context) {
@@ -268,6 +367,18 @@ func GetCompanyApplications(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"applications": applications})
+}
+
+func GetCompanyProjects(c *gin.Context) {
+	companyID := c.GetUint("userID")
+
+	var projects []models.Project
+	if err := DB.Where("company_id = ?", companyID).Find(&projects).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch company projects"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"projects": projects})
 }
 
 func GetMyApplications(c *gin.Context) {

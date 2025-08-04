@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillBridge Debug Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+        .error { background: #fff5f5; border-color: #fed7d7; color: #c53030; }
+        .success { background: #f0fff4; border-color: #9ae6b4; color: #2f855a; }
+        .warning { background: #fffbeb; border-color: #fbd38d; color: #c05621; }
+        button { background: #4299e1; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #3182ce; }
+        input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        pre { background: #f7fafc; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        .status { padding: 5px 10px; border-radius: 4px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 SkillBridge Debug Tool</h1>
+        
+        <!-- Current Status -->
+        <div class="section">
+            <h3>📊 Current Status</h3>
+            <div id="statusDisplay">
+                <div class="status" id="tokenStatus">Token: Not checked</div>
+                <div class="status" id="userStatus">User: Not checked</div>
+                <div class="status" id="backendStatus">Backend: Not checked</div>
+            </div>
+            <button onclick="checkCurrentStatus()">🔍 Check Status</button>
+            <button onclick="clearAllData()">🗑️ Clear All Data</button>
+        </div>
+
+        <!-- Login Section -->
+        <div class="section">
+            <h3>🔐 Fresh Login Test</h3>
+            <input type="email" id="loginEmail" placeholder="Email" value="test@example.com">
+            <input type="password" id="loginPassword" placeholder="Password" value="password123">
+            <button onclick="testLogin()">🚀 Fresh Login</button>
+            <div id="loginResult"></div>
+        </div>
+
+        <!-- Token Debug -->
+        <div class="section">
+            <h3>🎫 Token Analysis</h3>
+            <button onclick="analyzeToken()">🔬 Analyze Current Token</button>
+            <div id="tokenAnalysis"></div>
+        </div>
+
+        <!-- API Tests -->
+        <div class="section">
+            <h3>🌐 API Tests</h3>
+            <button onclick="testBackendHealth()">❤️ Test Backend Health</button>
+            <button onclick="testProfile()">👤 Test Profile API</button>
+            <button onclick="testDashboard()">📈 Test Dashboard API</button>
+            <div id="apiResults"></div>
+        </div>
+
+        <!-- Debug Log -->
+        <div class="section">
+            <h3>📝 Debug Log</h3>
+            <button onclick="clearLog()">🧹 Clear Log</button>
+            <pre id="debugLog"></pre>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('debugLog');
+            const logLine = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            logElement.textContent += logLine;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(logLine);
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').textContent = '';
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `section ${type}`;
+            element.innerHTML = `<pre>${message}</pre>`;
+        }
+
+        function isValidToken(token) {
+            if (!token || typeof token !== 'string') return false;
+            if (token === 'google-oauth-token') return false;
+            
+            const parts = token.split('.');
+            if (parts.length !== 3) return false;
+            
+            try {
+                const payload = JSON.parse(atob(parts[1]));
+                const currentTime = Math.floor(Date.now() / 1000);
+                return payload.exp && payload.exp > currentTime;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        function getTokenPayload(token) {
+            try {
+                const parts = token.split('.');
+                if (parts.length !== 3) return null;
+                return JSON.parse(atob(parts[1]));
+            } catch (error) {
+                return null;
+            }
+        }
+
+        async function checkCurrentStatus() {
+            log('Checking current status...');
+            
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            // Update token status
+            const tokenElement = document.getElementById('tokenStatus');
+            if (!token) {
+                tokenElement.textContent = 'Token: None';
+                tokenElement.className = 'status error';
+            } else if (token === 'google-oauth-token') {
+                tokenElement.textContent = 'Token: Fake Google OAuth token';
+                tokenElement.className = 'status error';
+            } else if (isValidToken(token)) {
+                tokenElement.textContent = 'Token: Valid JWT';
+                tokenElement.className = 'status success';
+            } else {
+                tokenElement.textContent = 'Token: Invalid/Expired JWT';
+                tokenElement.className = 'status error';
+            }
+            
+            // Update user status
+            const userElement = document.getElementById('userStatus');
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    userElement.textContent = `User: ${userData.name} (${userData.role})`;
+                    userElement.className = 'status success';
+                } catch (error) {
+                    userElement.textContent = 'User: Invalid data';
+                    userElement.className = 'status error';
+                }
+            } else {
+                userElement.textContent = 'User: None';
+                userElement.className = 'status warning';
+            }
+            
+            // Test backend
+            try {
+                const response = await fetch('http://localhost:8080/health');
+                const data = await response.json();
+                const backendElement = document.getElementById('backendStatus');
+                backendElement.textContent = `Backend: ${data.message}`;
+                backendElement.className = 'status success';
+            } catch (error) {
+                const backendElement = document.getElementById('backendStatus');
+                backendElement.textContent = 'Backend: Not responding';
+                backendElement.className = 'status error';
+            }
+        }
+
+        function clearAllData() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            log('Cleared all localStorage data');
+            checkCurrentStatus();
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            log(`Attempting login with ${email}...`);
+            
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('Login successful!');
+                    localStorage.setItem('token', data.token);
+                    
+                    // Get user profile
+                    const profileResponse = await fetch(`${API_BASE}/profile`, {
+                        headers: { 'Authorization': `Bearer ${data.token}` }
+                    });
+                    
+                    if (profileResponse.ok) {
+                        const userData = await profileResponse.json();
+                        localStorage.setItem('user', JSON.stringify(userData));
+                        log('Profile fetched and saved!');
+                        showResult('loginResult', `Login Success!\nToken: ${data.token.substring(0, 50)}...\nUser: ${userData.name} (${userData.role})`, 'success');
+                    } else {
+                        log('Profile fetch failed');
+                        showResult('loginResult', 'Login successful but profile fetch failed', 'warning');
+                    }
+                    
+                    checkCurrentStatus();
+                } else {
+                    log(`Login failed: ${data.error}`);
+                    showResult('loginResult', `Login failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`Login error: ${error.message}`);
+                showResult('loginResult', `Login error: ${error.message}`, 'error');
+            }
+        }
+
+        function analyzeToken() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                showResult('tokenAnalysis', 'No token found', 'error');
+                return;
+            }
+            
+            let analysis = `Token: ${token.substring(0, 50)}...\n\n`;
+            
+            if (token === 'google-oauth-token') {
+                analysis += 'Type: Fake Google OAuth token\nStatus: INVALID\nAction: Need to login again';
+                showResult('tokenAnalysis', analysis, 'error');
+                return;
+            }
+            
+            const payload = getTokenPayload(token);
+            if (!payload) {
+                analysis += 'Type: Invalid JWT format\nStatus: MALFORMED';
+                showResult('tokenAnalysis', analysis, 'error');
+                return;
+            }
+            
+            const currentTime = Math.floor(Date.now() / 1000);
+            const isExpired = payload.exp < currentTime;
+            const timeLeft = payload.exp - currentTime;
+            
+            analysis += `Type: JWT Token\n`;
+            analysis += `User ID: ${payload.user_id}\n`;
+            analysis += `Role: ${payload.role}\n`;
+            analysis += `Expires: ${new Date(payload.exp * 1000).toLocaleString()}\n`;
+            analysis += `Current Time: ${new Date(currentTime * 1000).toLocaleString()}\n`;
+            analysis += `Status: ${isExpired ? 'EXPIRED' : 'VALID'}\n`;
+            
+            if (!isExpired) {
+                analysis += `Time Left: ${Math.floor(timeLeft / 3600)} hours, ${Math.floor((timeLeft % 3600) / 60)} minutes`;
+            }
+            
+            showResult('tokenAnalysis', analysis, isExpired ? 'error' : 'success');
+        }
+
+        async function testBackendHealth() {
+            try {
+                const response = await fetch('http://localhost:8080/health');
+                const data = await response.json();
+                showResult('apiResults', `Backend Health: ${JSON.stringify(data, null, 2)}`, 'success');
+            } catch (error) {
+                showResult('apiResults', `Backend Health Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testProfile() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showResult('apiResults', 'No token available for profile test', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('apiResults', `Profile API Success:\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    showResult('apiResults', `Profile API Error:\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult('apiResults', `Profile API Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDashboard() {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            
+            if (!token) {
+                showResult('apiResults', 'No token available for dashboard test', 'error');
+                return;
+            }
+            
+            const role = user.role || 'student';
+            const endpoint = `/dashboard/${role}`;
+            
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('apiResults', `Dashboard API Success (${role}):\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    showResult('apiResults', `Dashboard API Error (${role}):\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult('apiResults', `Dashboard API Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        checkCurrentStatus();
+    </script>
+</body>
+</html>

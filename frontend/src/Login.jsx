@@ -15,14 +15,21 @@ function Login() {
 
     // Keep this entire useEffect block from Stashed changes
     useEffect(() => {
+        // Clear any invalid tokens first
+        const token = utils.getToken();
+        if (token && (token === 'google-oauth-token' || token.startsWith('google-oauth-token'))) {
+            console.log('Clearing invalid Google OAuth token');
+            utils.clearAuth();
+        }
+        
         // Check if user is already logged in
         const isLoggedIn = utils.isLoggedIn();
-        const token = utils.getToken();
+        const validToken = utils.getToken();
         const user = utils.getUser();
         
-        console.log('Login page - Auth check:', { isLoggedIn, token, user });
+        console.log('Login page - Auth check:', { isLoggedIn, token: validToken, user });
         
-        if (isLoggedIn && token && user) {
+        if (isLoggedIn && validToken && user && !validToken.startsWith('google-oauth-token')) {
             console.log('User already logged in, redirecting to dashboard');
             navigate('/dashboard');
         }
@@ -123,8 +130,27 @@ function Login() {
                     // Save the proper JWT token
                     utils.saveToken(data.token);
                     
-                    // Save user data
-                    utils.saveUser(data.user);
+                    // Fetch complete profile data using the token
+                    try {
+                        const profileResponse = await fetch('http://localhost:8080/api/profile', {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${data.token}`,
+                                'Content-Type': 'application/json',
+                            },
+                        });
+                        
+                        if (profileResponse.ok) {
+                            const profileData = await profileResponse.json();
+                            utils.saveUser(profileData);
+                        } else {
+                            // Fallback to basic user data if profile fetch fails
+                            utils.saveUser(data.user);
+                        }
+                    } catch (profileError) {
+                        console.warn('Failed to fetch complete profile, using basic data:', profileError);
+                        utils.saveUser(data.user);
+                    }
                     
                     // Redirect to dashboard
                     navigate('/dashboard');
