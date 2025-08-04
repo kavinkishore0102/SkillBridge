@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillBridge - Fix Authentication</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            min-width: 150px;
+        }
+        .btn:hover {
+            background: #059669;
+        }
+        .btn-secondary {
+            background: #6b7280;
+        }
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        .warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 SkillBridge Authentication Fix</h1>
+        <p>This tool will fix your authentication issues by clearing invalid tokens.</p>
+        
+        <div id="status"></div>
+        
+        <div>
+            <button class="btn" onclick="clearAuth()">Clear All Auth Data</button>
+            <button class="btn btn-secondary" onclick="checkAuth()">Check Current Auth</button>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <a href="http://localhost:5176" class="btn">Go to SkillBridge App</a>
+        </div>
+        
+        <div style="margin-top: 20px; font-size: 14px; color: #666;">
+            <strong>Steps to fix:</strong><br>
+            1. Click "Clear All Auth Data"<br>
+            2. Go to SkillBridge App<br>
+            3. Login again with fresh credentials
+        </div>
+    </div>
+
+    <script>
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function clearAuth() {
+            try {
+                // Clear all possible auth-related localStorage items
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                localStorage.removeItem('auth');
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('skillbridge_token');
+                localStorage.removeItem('skillbridge_user');
+                
+                // Clear all localStorage to be sure
+                localStorage.clear();
+                
+                // Clear sessionStorage too
+                sessionStorage.clear();
+                
+                showStatus('✅ All authentication data cleared successfully!<br>You can now login fresh.', 'success');
+            } catch (error) {
+                showStatus('❌ Error clearing data: ' + error.message, 'warning');
+            }
+        }
+
+        function checkAuth() {
+            try {
+                const token = localStorage.getItem('token');
+                const user = localStorage.getItem('user');
+                const allKeys = Object.keys(localStorage);
+                
+                let message = `<strong>Current Auth Status:</strong><br>`;
+                message += `Token: ${token ? (token.length > 50 ? token.substring(0, 50) + '...' : token) : 'None'}<br>`;
+                message += `User: ${user ? 'Present' : 'None'}<br>`;
+                message += `Total localStorage items: ${allKeys.length}<br>`;
+                
+                if (allKeys.length > 0) {
+                    message += `Keys: ${allKeys.join(', ')}`;
+                }
+                
+                const type = (token && token.includes('google-oauth-token')) ? 'warning' : 'info';
+                showStatus(message, type);
+            } catch (error) {
+                showStatus('❌ Error checking auth: ' + error.message, 'warning');
+            }
+        }
+
+        // Auto-check on load
+        window.onload = function() {
+            checkAuth();
+        };
+    </script>
+</body>
+</html>

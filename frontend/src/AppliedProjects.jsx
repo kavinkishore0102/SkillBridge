@@ -8,6 +8,10 @@ function AppliedProjects() {
   const [appliedProjects, setAppliedProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showGithubModal, setShowGithubModal] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [githubRepoUrl, setGithubRepoUrl] = useState('');
+  const [submittingGithub, setSubmittingGithub] = useState(false);
   const navigate = useNavigate();
   const theme = useTheme();
   const { addNotification } = useNotifications();
@@ -59,8 +63,8 @@ function AppliedProjects() {
     }
   };
 
-  const handleWithdraw = async (projectId, projectTitle) => {
-    if (!confirm(`Are you sure you want to withdraw from "${projectTitle}"?`)) {
+    const handleWithdraw = async (projectId, projectTitle) => {
+    if (!window.confirm(`Are you sure you want to withdraw from "${projectTitle}"?`)) {
       return;
     }
 
@@ -68,17 +72,90 @@ function AppliedProjects() {
       const token = utils.getToken();
       await projectAPI.withdrawApplication(projectId, token);
       
+      addNotification(
+        `Successfully withdrew from "${projectTitle}".`,
+        "Just now"
+      );
+      
       // Remove from local state
       setAppliedProjects(prev => prev.filter(app => app.project_id !== projectId));
       
-      addNotification(`Withdrawn from "${projectTitle}"`, 'Just now');
-      
-      // Trigger a storage event to notify other components about the change
+      // Dispatch event to notify other components
       window.dispatchEvent(new CustomEvent('applicationsUpdated'));
       
     } catch (error) {
       console.error('Error withdrawing application:', error);
       alert('Failed to withdraw application. Please try again.');
+    }
+  };
+
+  const handleSubmitGithubRepo = (application) => {
+    setSelectedApplication(application);
+    setGithubRepoUrl(application.github_repo_url || '');
+    setShowGithubModal(true);
+  };
+
+  const submitGithubRepo = async () => {
+    if (!githubRepoUrl.trim()) {
+      alert('Please enter a GitHub repository URL');
+      return;
+    }
+
+    if (!githubRepoUrl.includes('github.com')) {
+      alert('Please enter a valid GitHub repository URL');
+      return;
+    }
+
+    setSubmittingGithub(true);
+
+    try {
+      console.log('Selected Application for GitHub submission:', selectedApplication);
+      console.log('Application ID:', selectedApplication.id);
+      console.log('GitHub Repo URL:', githubRepoUrl);
+      
+      const token = utils.getToken();
+      const requestBody = {
+        application_id: selectedApplication.id,
+        github_repo_url: githubRepoUrl
+      };
+      
+      console.log('Request body:', requestBody);
+      
+      const response = await fetch('http://localhost:8080/api/projects/submit-github', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        addNotification(
+          `GitHub repository submitted successfully for "${selectedApplication.project_title || selectedApplication.project?.title}"!`,
+          "Just now"
+        );
+        
+        // Update local state
+        setAppliedProjects(prev => prev.map(app => 
+          app.id === selectedApplication.id 
+            ? { ...app, github_repo_url: githubRepoUrl }
+            : app
+        ));
+        
+        setShowGithubModal(false);
+        setGithubRepoUrl('');
+        setSelectedApplication(null);
+      } else {
+        alert(data.error || 'Failed to submit GitHub repository');
+      }
+    } catch (error) {
+      console.error('Error submitting GitHub repo:', error);
+      alert('Failed to submit GitHub repository. Please try again.');
+    } finally {
+      setSubmittingGithub(false);
     }
   };
 
@@ -432,6 +509,49 @@ function AppliedProjects() {
                     View Details
                   </button>
                   
+                  {/* GitHub Repository Submission Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSubmitGithubRepo(application);
+                    }}
+                    style={{
+                      background: application.github_repo_url ? 'transparent' : '#10b981',
+                      color: application.github_repo_url ? '#10b981' : 'white',
+                      border: application.github_repo_url ? '2px solid #10b981' : 'none',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transform: 'translateY(0)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (application.github_repo_url) {
+                        e.target.style.backgroundColor = '#10b981';
+                        e.target.style.color = 'white';
+                      } else {
+                        e.target.style.backgroundColor = '#059669';
+                      }
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 6px 20px #10b98130';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (application.github_repo_url) {
+                        e.target.style.backgroundColor = 'transparent';
+                        e.target.style.color = '#10b981';
+                      } else {
+                        e.target.style.backgroundColor = '#10b981';
+                        e.target.style.color = 'white';
+                      }
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                  >
+                    {application.github_repo_url ? '🐙 Update Repo' : '📤 Submit Repo'}
+                  </button>
+                  
                   {(application.status === 'pending' || !application.status) && (
                     <button
                       onClick={(e) => {
@@ -472,6 +592,140 @@ function AppliedProjects() {
           </div>
         )}
       </div>
+
+      {/* GitHub Repository Submission Modal */}
+      {showGithubModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: '12px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: theme.shadows.modal
+          }}>
+            <h3 style={{
+              color: theme.colors.text,
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '24px' }}>🐙</span>
+              Submit GitHub Repository
+            </h3>
+            
+            <p style={{
+              color: theme.colors.textSecondary,
+              marginBottom: '20px',
+              lineHeight: '1.5'
+            }}>
+              Submit your GitHub repository URL for the project:{' '}
+              <strong style={{ color: theme.colors.text }}>
+                {selectedApplication?.project_title || selectedApplication?.project?.title}
+              </strong>
+            </p>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '500',
+                color: theme.colors.text
+              }}>
+                GitHub Repository URL
+              </label>
+              <input
+                type="url"
+                value={githubRepoUrl}
+                onChange={(e) => setGithubRepoUrl(e.target.value)}
+                placeholder="https://github.com/username/repository-name"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: `2px solid ${theme.colors.border}`,
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  backgroundColor: theme.colors.background,
+                  color: theme.colors.text,
+                  outline: 'none',
+                  transition: 'border-color 0.3s ease'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = theme.colors.primary;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = theme.colors.border;
+                }}
+              />
+              <small style={{
+                color: theme.colors.textSecondary,
+                fontSize: '12px',
+                marginTop: '5px',
+                display: 'block'
+              }}>
+                Make sure your repository is public or accessible to collaborators
+              </small>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={() => {
+                  setShowGithubModal(false);
+                  setGithubRepoUrl('');
+                  setSelectedApplication(null);
+                }}
+                disabled={submittingGithub}
+                style={{
+                  background: 'transparent',
+                  color: theme.colors.textSecondary,
+                  border: `2px solid ${theme.colors.border}`,
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: submittingGithub ? 'not-allowed' : 'pointer',
+                  opacity: submittingGithub ? 0.6 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitGithubRepo}
+                disabled={submittingGithub || !githubRepoUrl.trim()}
+                style={{
+                  background: submittingGithub || !githubRepoUrl.trim() ? '#ccc' : '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: submittingGithub || !githubRepoUrl.trim() ? 'not-allowed' : 'pointer',
+                  transition: 'background-color 0.3s ease'
+                }}
+              >
+                {submittingGithub ? 'Submitting...' : 'Submit Repository'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

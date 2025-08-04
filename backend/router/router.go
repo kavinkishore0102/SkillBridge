@@ -49,6 +49,10 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/profile", controller.GetProfile)
 		authorized.PUT("/profile", controller.UpdateProfile)
 		authorized.POST("/refresh-token", controller.RefreshToken)
+		
+		// GitHub integration routes
+		authorized.POST("/github/token", controller.SetGithubToken)
+		authorized.DELETE("/github/token", controller.RemoveGithubToken)
 
 		// 📤 Only 'company' can post projects
 		authorized.POST("/projects", middleware.AuthorizeRoles("company"), controller.PostProject)
@@ -57,6 +61,7 @@ func SetupRouter() *gin.Engine {
 
 		// 🧑‍🎓 Only 'student' can apply to a project
 		authorized.POST("/projects/apply", middleware.AuthorizeRoles("student"), controller.ApplyToProject)
+		authorized.POST("/projects/submit-github", middleware.AuthorizeRoles("student"), controller.SubmitGithubRepo)
 		authorized.GET("/projects/:id/applicants", middleware.AuthorizeRoles("company"), controller.GetProjectApplicants)
 
 		authorized.POST("/projects/:id/submit", middleware.AuthorizeRoles("student"), controller.SubmitProject)
@@ -67,6 +72,7 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/dashboard/company", middleware.AuthorizeRoles("company"), controller.CompanyDashboard)
 		authorized.GET("/dashboard/guide", middleware.AuthorizeRoles("guide"), controller.GuideDashboard)
 		authorized.GET("/company/applications", middleware.AuthorizeRoles("company"), controller.GetCompanyApplications)
+		authorized.GET("/company/projects", middleware.AuthorizeRoles("company"), controller.GetCompanyProjects)
 		authorized.GET("/my-applications", middleware.AuthorizeRoles("student"), controller.GetMyApplications)
 		authorized.GET("/guide/submissions", middleware.AuthorizeRoles("guide"), controller.GetGuideSubmissions)
 

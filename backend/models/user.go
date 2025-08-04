@@ -9,7 +9,9 @@ type User struct {
 	Password     string `json:"password,omitempty" gorm:"column:password"`
 	Role         string `json:"role"`
 	Bio          string `json:"bio"`
+	Picture      string `json:"picture"`                    // Google profile picture URL
 	GithubURL    string `json:"github_url"`
+	GithubToken  string `json:"-" gorm:"column:github_token"` // Hidden from JSON, used for API calls
 	LinkedIn     string `json:"linkedin"`
 	Phone        string `json:"phone"`
 	University   string `json:"university"`

@@ -1,13 +1,39 @@
 // API configuration
 const API_BASE_URL = 'http://localhost:8080/api';
 
+// Token validation utility (inline)
+const isValidToken = (token) => {
+  if (!token || typeof token !== 'string') return false;
+  if (token === 'google-oauth-token') return false;
+  
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+  
+  try {
+    const payload = JSON.parse(atob(parts[1]));
+    const currentTime = Math.floor(Date.now() / 1000);
+    return payload.exp && payload.exp > currentTime;
+  } catch (error) {
+    return false;
+  }
+};
+
 // Helper function to make API calls
 const apiCall = async (endpoint, method = 'GET', data = null, token = null) => {
   console.log('=== API CALL INITIATED ===');
   console.log('Endpoint:', endpoint);
   console.log('Method:', method);
   console.log('Data:', data);
-  console.log('Token:', token);
+  
+  // Validate token if provided
+  if (token && !isValidToken(token)) {
+    console.error('Invalid or expired token detected');
+    utils.logout();
+    window.location.href = '/';
+    throw new Error('Session expired. Please login again.');
+  }
+  
+  console.log('Token valid:', token ? 'Yes' : 'No token');
 
   const headers = {
     'Content-Type': 'application/json',
@@ -206,7 +232,8 @@ export const utils = {
 
   // Check if user is logged in
   isLoggedIn: () => {
-    return !!localStorage.getItem('token');
+    const token = utils.getToken();
+    return token && isValidToken(token);
   },
 
   // Save user data to localStorage

@@ -11,6 +11,8 @@ import EditProfile from './EditProfile';
 import AppliedProjects from './AppliedProjects';
 import ProjectDetails from './ProjectDetails';
 import PostProject from './PostProject';
+import CompanyProjects from './CompanyProjects';
+import CompanyApplications from './CompanyApplications';
 import Submissions from './Submissions';
 import './styles/professional.css';
 
@@ -32,6 +34,8 @@ function AppContent() {
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/applied-projects" element={<AppliedProjects />} />
           <Route path="/post-project" element={<PostProject />} />
+          <Route path="/company/projects" element={<CompanyProjects />} />
+          <Route path="/company/applications" element={<CompanyApplications />} />
           <Route path="/submissions" element={<Submissions />} />
         </Routes>
       </div>

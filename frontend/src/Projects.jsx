@@ -102,7 +102,7 @@ function Projects() {
 
     try {
       const token = utils.getToken();
-      await projectAPI.applyToProject(projectId, token);
+      const response = await projectAPI.applyToProject(projectId, token);
       
       // Find the project to get its title
       const appliedProject = projects.find(p => p.id === projectId);
