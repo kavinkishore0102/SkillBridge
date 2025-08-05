@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Navbar from './components/Navbar';
+import SimpleChatbot from './components/SimpleChatbot';
 import Login from './Login';
 import Signup from './Signup';
 import Dashboard from './UserDashboard';
@@ -39,6 +40,9 @@ function AppContent() {
           <Route path="/submissions" element={<Submissions />} />
         </Routes>
       </div>
+      
+      {/* SkillBridge AI Chatbot - Available on all pages */}
+      <SimpleChatbot />
     </div>
   );
 }
