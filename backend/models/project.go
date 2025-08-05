@@ -25,8 +25,8 @@ type Project struct {
 
 type Application struct {
 	gorm.Model
-	StudentID     uint    `json:"student_id"`
-	ProjectID     uint    `json:"project_id"`
+	StudentID     uint    `json:"student_id" gorm:"uniqueIndex:idx_student_project"`
+	ProjectID     uint    `json:"project_id" gorm:"uniqueIndex:idx_student_project"`
 	Status        string  `json:"status" gorm:"default:'pending'"` // pending, approved, rejected
 	ProjectTitle  string  `json:"project_title"`                   // Direct project title for easier queries
 	GithubRepoURL string  `json:"github_repo_url"`                 // Auto-created GitHub repository URL

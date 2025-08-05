@@ -12,6 +12,7 @@ function AppliedProjects() {
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [githubRepoUrl, setGithubRepoUrl] = useState('');
   const [submittingGithub, setSubmittingGithub] = useState(false);
+  const [isFetching, setIsFetching] = useState(false); // Add flag to prevent concurrent fetches
   const navigate = useNavigate();
   const theme = useTheme();
   const { addNotification } = useNotifications();
@@ -34,32 +35,63 @@ function AppliedProjects() {
 
     fetchAppliedProjects();
 
-    // Listen for application updates from other components
+    // Listen for application updates from other components with throttling
+    let refreshTimeout;
     const handleApplicationsUpdate = () => {
       console.log('Applications updated, refreshing applied projects...');
-      fetchAppliedProjects();
+      // Clear any existing timeout to prevent multiple rapid calls
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+      // Throttle the refresh to prevent excessive API calls
+      refreshTimeout = setTimeout(() => {
+        fetchAppliedProjects();
+      }, 500);
     };
 
     window.addEventListener('applicationsUpdated', handleApplicationsUpdate);
     
     return () => {
       window.removeEventListener('applicationsUpdated', handleApplicationsUpdate);
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
     };
   }, [navigate]);
 
   const fetchAppliedProjects = async () => {
+    // Prevent concurrent fetches
+    if (isFetching) {
+      console.log('Fetch already in progress, skipping...');
+      return;
+    }
+    
+    setIsFetching(true);
     try {
       const token = utils.getToken();
       const response = await dashboardAPI.getMyApplications(token);
       console.log('Applied Projects - API response:', response);
       console.log('Applied Projects - Applications array:', response.applications);
       console.log('Applied Projects - Applications count:', response.applications?.length);
-      setAppliedProjects(response.applications || []);
+      
+      // Ensure we have an array and deduplicate by ID
+      const applications = response.applications || [];
+      const uniqueApplications = applications.filter((app, index, self) => 
+        index === self.findIndex(a => a.ID === app.ID)
+      );
+      
+      console.log('Applied Projects - Unique applications count:', uniqueApplications.length);
+      if (applications.length !== uniqueApplications.length) {
+        console.warn('Found duplicate applications, filtered from', applications.length, 'to', uniqueApplications.length);
+      }
+      
+      setAppliedProjects(uniqueApplications);
     } catch (error) {
       console.error('Error fetching applied projects:', error);
       setError('Failed to load applied projects');
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
   };
 
@@ -355,7 +387,7 @@ function AppliedProjects() {
           }}>
             {appliedProjects.map((application, index) => (
               <div
-                key={application.id}
+                key={`${application.ID}-${application.project_id}-${index}`}
                 style={{
                   backgroundColor: theme.colors.surface,
                   borderRadius: '12px',
