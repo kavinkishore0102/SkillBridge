@@ -21,6 +21,15 @@ function AppliedProjects() {
   console.log('Theme colors:', theme.colors);
   console.log('Blue color:', theme.colors.blue);
 
+  // Monitor selectedApplication and close modal if it becomes invalid
+  useEffect(() => {
+    if (showGithubModal && (!selectedApplication || (!selectedApplication.ID && !selectedApplication.id))) {
+      console.warn('Closing GitHub modal: invalid selectedApplication', selectedApplication);
+      setShowGithubModal(false);
+      setSelectedApplication(null);
+    }
+  }, [showGithubModal, selectedApplication]);
+
   useEffect(() => {
     const user = utils.getUser();
     if (!user) {
@@ -122,6 +131,22 @@ function AppliedProjects() {
   };
 
   const handleSubmitGithubRepo = (application) => {
+    console.log('handleSubmitGithubRepo called with:', application);
+    
+    if (!application) {
+      console.error('No application provided to handleSubmitGithubRepo');
+      alert('Error: No application selected. Please try again.');
+      return;
+    }
+    
+    // Check for both uppercase ID and lowercase id for compatibility
+    const applicationId = application.ID || application.id;
+    if (!applicationId) {
+      console.error('Application has no ID:', application);
+      alert('Error: Invalid application. Please try again.');
+      return;
+    }
+    
     setSelectedApplication(application);
     setGithubRepoUrl(application.github_repo_url || '');
     setShowGithubModal(true);
@@ -138,20 +163,36 @@ function AppliedProjects() {
       return;
     }
 
+    // Validate selectedApplication
+    if (!selectedApplication) {
+      alert('Error: No application selected. Please try again.');
+      console.error('selectedApplication is null/undefined');
+      return;
+    }
+
+    // Check for both uppercase ID and lowercase id for compatibility
+    const applicationId = selectedApplication.ID || selectedApplication.id;
+    if (!applicationId) {
+      alert('Error: Invalid application ID. Please try again.');
+      console.error('selectedApplication.ID/id is null/undefined:', selectedApplication);
+      return;
+    }
+
     setSubmittingGithub(true);
 
     try {
       console.log('Selected Application for GitHub submission:', selectedApplication);
-      console.log('Application ID:', selectedApplication.id);
+      console.log('Application ID:', applicationId);
       console.log('GitHub Repo URL:', githubRepoUrl);
       
       const token = utils.getToken();
       const requestBody = {
-        application_id: selectedApplication.id,
+        application_id: applicationId,
         github_repo_url: githubRepoUrl
       };
       
       console.log('Request body:', requestBody);
+      console.log('Request body JSON:', JSON.stringify(requestBody));
       
       const response = await fetch('http://localhost:8080/api/projects/submit-github', {
         method: 'POST',
@@ -172,7 +213,7 @@ function AppliedProjects() {
         
         // Update local state
         setAppliedProjects(prev => prev.map(app => 
-          app.id === selectedApplication.id 
+          (app.ID || app.id) === applicationId 
             ? { ...app, github_repo_url: githubRepoUrl }
             : app
         ));
@@ -182,6 +223,8 @@ function AppliedProjects() {
         setSelectedApplication(null);
       } else {
         alert(data.error || 'Failed to submit GitHub repository');
+        console.error('GitHub submission failed:', data);
+        console.error('Selected application at time of failure:', selectedApplication);
       }
     } catch (error) {
       console.error('Error submitting GitHub repo:', error);
@@ -626,7 +669,7 @@ function AppliedProjects() {
       </div>
 
       {/* GitHub Repository Submission Modal */}
-      {showGithubModal && (
+      {showGithubModal && selectedApplication && (selectedApplication.ID || selectedApplication.id) && (
         <div style={{
           position: 'fixed',
           top: 0,

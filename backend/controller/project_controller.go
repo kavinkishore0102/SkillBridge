@@ -66,11 +66,34 @@ func SubmitGithubRepo(c *gin.Context) {
 	
 	if err := c.ShouldBindJSON(&input); err != nil {
 		fmt.Printf("JSON binding error: %v\n", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		
+		// Provide more specific error messages
+		if strings.Contains(err.Error(), "application_id") {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Missing or invalid application_id. Please ensure you have selected a valid application.",
+				"details": err.Error(),
+			})
+		} else if strings.Contains(err.Error(), "github_repo_url") {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Missing or invalid github_repo_url. Please provide a valid GitHub repository URL.",
+				"details": err.Error(),
+			})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid request format. Please check your input.",
+				"details": err.Error(),
+			})
+		}
 		return
 	}
 
 	fmt.Printf("Successfully bound request: %+v\n", input)
+
+	// Validate that application_id is not zero
+	if input.ApplicationID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid application_id: cannot be zero"})
+		return
+	}
 
 	// Validate GitHub URL format
 	if !strings.Contains(input.GithubRepoURL, "github.com") {
