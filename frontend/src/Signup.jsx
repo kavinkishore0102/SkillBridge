@@ -80,13 +80,8 @@ function Signup() {
         setLoading(true);
         setError('');
 
-        console.log('=== SIGNUP FORM SUBMISSION STARTED ===');
-        console.log('Form data:', formData);
-        console.log('API_BASE_URL:', 'http://localhost:8080/api');
-
         // Validate passwords match
         if (formData.password !== formData.confirmPassword) {
-            console.log('Password validation failed: passwords do not match');
             setError('Passwords do not match');
             setLoading(false);
             return;
@@ -102,27 +97,19 @@ function Signup() {
 
             console.log('=== SENDING SIGNUP REQUEST ===');
             console.log('userData:', userData);
-            console.log('About to call authAPI.signup...');
             
             const response = await authAPI.signup(userData);
-            console.log('=== SIGNUP RESPONSE RECEIVED ===');
-            console.log('Signup response:', response);
             
             // Save token
-            console.log('Saving token:', response.token);
             utils.saveToken(response.token);
             
             // Get user profile
-            console.log('Getting user profile...');
             const userProfile = await authAPI.getProfile(response.token);
-            console.log('User profile:', userProfile);
             utils.saveUser(userProfile);
             
             // Redirect to dashboard
-            console.log('Redirecting to dashboard...');
             navigate('/dashboard');
         } catch (error) {
-            console.error('=== SIGNUP ERROR ===');
             console.error('Error details:', error);
             console.error('Error message:', error.message);
             console.error('Error stack:', error.stack);

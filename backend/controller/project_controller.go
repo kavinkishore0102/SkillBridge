@@ -66,11 +66,34 @@ func SubmitGithubRepo(c *gin.Context) {
 	
 	if err := c.ShouldBindJSON(&input); err != nil {
 		fmt.Printf("JSON binding error: %v\n", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		
+		// Provide more specific error messages
+		if strings.Contains(err.Error(), "application_id") {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Missing or invalid application_id. Please ensure you have selected a valid application.",
+				"details": err.Error(),
+			})
+		} else if strings.Contains(err.Error(), "github_repo_url") {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Missing or invalid github_repo_url. Please provide a valid GitHub repository URL.",
+				"details": err.Error(),
+			})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid request format. Please check your input.",
+				"details": err.Error(),
+			})
+		}
 		return
 	}
 
 	fmt.Printf("Successfully bound request: %+v\n", input)
+
+	// Validate that application_id is not zero
+	if input.ApplicationID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid application_id: cannot be zero"})
+		return
+	}
 
 	// Validate GitHub URL format
 	if !strings.Contains(input.GithubRepoURL, "github.com") {
@@ -294,46 +317,94 @@ func ReviewSubmission(c *gin.Context) {
 	}
 
 	role := c.GetString("role")
-	if role != "company" {
+	userID := c.GetUint("userID")
+
+	// Allow both company and guide to review submissions
+	if role != "company" && role != "guide" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	var input struct {
-		Status   string `json:"status"`   // accepted, rejected, changes_requested
-		Feedback string `json:"feedback"` // optional
-	}
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
 	var submission models.Submission
-	if err := DB.First(&submission, submissionID).Error; err != nil {
+	if err := DB.Preload("Project").First(&submission, submissionID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Submission not found"})
 		return
 	}
 
-	// Update submission fields
-	submission.Status = input.Status
-	submission.Feedback = input.Feedback
-
-	if err := DB.Save(&submission).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update submission"})
+	// Company can only review their own projects
+	if role == "company" && submission.Project.CompanyID != userID {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: Not your project"})
 		return
 	}
 
-	// 🔔 Send notification to the student
-	err = utils.CreateNotification(DB, submission.StudentID, "Your submission was reviewed: "+input.Status)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send notification"})
+	// Guide can only review projects assigned to them
+	if role == "guide" && (submission.Project.GuideID == nil || *submission.Project.GuideID != userID) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: Not assigned to this project"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message":    "Submission reviewed",
-		"submission": submission,
-	})
+	if role == "company" {
+		// Company review (existing functionality)
+		var input struct {
+			Status   string `json:"status"`   // accepted, rejected, changes_requested
+			Feedback string `json:"feedback"` // optional
+		}
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Update submission fields for company review
+		submission.Status = input.Status
+		submission.Feedback = input.Feedback
+
+		if err := DB.Save(&submission).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update submission"})
+			return
+		}
+
+		// Send notification to the student
+		err = utils.CreateNotification(DB, submission.StudentID, "Your submission was reviewed by company: "+input.Status)
+		if err != nil {
+			log.Printf("Failed to send notification: %v", err)
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message":    "Submission reviewed by company",
+			"submission": submission,
+		})
+
+	} else if role == "guide" {
+		// Guide review (new functionality)
+		var input struct {
+			ReviewStatus  string `json:"review_status"`  // approved, rejected, pending
+			ReviewComment string `json:"review_comment"` // optional
+		}
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Update submission fields for guide review
+		submission.ReviewStatus = input.ReviewStatus
+		submission.ReviewComment = input.ReviewComment
+
+		if err := DB.Save(&submission).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update submission"})
+			return
+		}
+
+		// Send notification to the student
+		err = utils.CreateNotification(DB, submission.StudentID, "Your submission was reviewed by guide: "+input.ReviewStatus)
+		if err != nil {
+			log.Printf("Failed to send notification: %v", err)
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message":    "Submission reviewed by guide",
+			"submission": submission,
+		})
+	}
 }
 
 func GetMySubmissions(c *gin.Context) {
@@ -398,6 +469,7 @@ func GetGuideSubmissions(c *gin.Context) {
 
 	var submissions []models.Submission
 	err := DB.Preload("Student").
+		Preload("Project").
 		Joins("JOIN projects ON submissions.project_id = projects.id").
 		Where("projects.guide_id = ?", guideID).
 		Find(&submissions).Error

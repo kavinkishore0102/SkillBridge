@@ -485,10 +485,7 @@ function Projects() {
                   </button>
                 )}
                 <button
-                  onClick={() => {
-                    console.log('Navigating to project details:', project.id);
-                    navigate(`/projects/${project.id}`);
-                  }}
+                  onClick={() => navigate(`/projects/${project.id}`)}
                   style={{
                     backgroundColor: theme.colors.blue,
                     color: 'white',

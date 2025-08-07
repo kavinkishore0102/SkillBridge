@@ -58,40 +58,30 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		tokenStr := parts[1]
 		
-		// Debug: Print token info (remove in production)
-		fmt.Printf("DEBUG: Received token: %s...\n", tokenStr[:min(len(tokenStr), 20)])
-		fmt.Printf("DEBUG: Current time: %v\n", time.Now().Unix())
-
 		// Parse and verify token
 		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 			// Ensure signing method is HMAC
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				fmt.Printf("DEBUG: Invalid signing method: %v\n", token.Method)
 				return nil, jwt.ErrSignatureInvalid
 			}
 			return JWT_SECRET, nil
 		})
 
 		if err != nil {
-			fmt.Printf("DEBUG: Token parse error: %v\n", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
 		}
 		if !token.Valid {
-			fmt.Printf("DEBUG: Token not valid\n")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
 		}
 
 		// Extract claims
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			fmt.Printf("DEBUG: Token claims: %+v\n", claims)
 			
 			// Check expiration manually for debugging
 			if exp, ok := claims["exp"].(float64); ok {
-				fmt.Printf("DEBUG: Token expires at: %v (current: %v)\n", exp, time.Now().Unix())
 				if int64(exp) < time.Now().Unix() {
-					fmt.Printf("DEBUG: Token has expired!\n")
 					c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token has expired"})
 					return
 				}
