@@ -26,8 +26,6 @@ const SimpleChatbot = () => {
     styleElement.innerHTML = bounceAnimation;
     document.head.appendChild(styleElement);
     
-    console.log('SimpleChatbot component mounted');
-    
     return () => {
       // Cleanup
       if (document.head.contains(styleElement)) {
@@ -82,8 +80,6 @@ const SimpleChatbot = () => {
       handleSendMessage();
     }
   };
-
-  console.log('SimpleChatbot render - isOpen:', isOpen);
 
   return (
     <>

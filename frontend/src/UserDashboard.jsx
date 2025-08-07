@@ -88,7 +88,6 @@ function Dashboard() {
         // Check if user is logged in
         const token = utils.getToken();
         if (!token || !utils.isLoggedIn()) {
-          console.log('No valid token found, redirecting to login');
           navigate('/');
           return;
         }
@@ -115,7 +114,6 @@ function Dashboard() {
 
         // If we still don't have user data, redirect to login
         if (!userData) {
-          console.log('No user data available, redirecting to login');
           utils.logout();
           navigate('/');
           return;
@@ -132,11 +130,6 @@ function Dashboard() {
                   dashboardAPI.getStudentDashboard(token),
                   dashboardAPI.getMyApplications(token)
                 ]);
-                
-                console.log('Dashboard API response:', studentDashboard);
-                console.log('Applications API response:', applicationsResponse);
-                console.log('Applications count from dashboard API:', studentDashboard?.applied_projects);
-                console.log('Applications count from applications API:', applicationsResponse?.applications?.length);
                 
                 // Override the applied_projects count with actual applications count
                 dashboardResponse = {

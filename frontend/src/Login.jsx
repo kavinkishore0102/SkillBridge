@@ -27,10 +27,7 @@ function Login() {
         const validToken = utils.getToken();
         const user = utils.getUser();
         
-        console.log('Login page - Auth check:', { isLoggedIn, token: validToken, user });
-        
         if (isLoggedIn && validToken && user && !validToken.startsWith('google-oauth-token')) {
-            console.log('User already logged in, redirecting to dashboard');
             navigate('/dashboard');
         }
 
