@@ -5,7 +5,6 @@ import { authAPI, utils } from './utils/api'; // Keep this line from Stashed cha
 
 function Login() {
     const navigate = useNavigate();
-    // Keep these useState declarations from Stashed changes
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -13,7 +12,6 @@ function Login() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Keep this entire useEffect block from Stashed changes
     useEffect(() => {
         // Clear any invalid tokens first
         const token = utils.getToken();
