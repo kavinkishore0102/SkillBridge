@@ -37,6 +37,7 @@ func SetupRouter() *gin.Engine {
 	router.GET("/api/projects/:id", controller.GetProjectById)
 	router.GET("/api/student/:id", controller.GetPublicStudentProfile)
 	router.GET("/api/company/:id", controller.GetPublicCompanyProfile)
+	router.GET("/api/guides", controller.GetAllGuides)
 
 	// ✅ Protected routes
 	authorized := router.Group("/api")
@@ -76,6 +77,13 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/my-applications", middleware.AuthorizeRoles("student"), controller.GetMyApplications)
 		authorized.GET("/guide/submissions", middleware.AuthorizeRoles("guide"), controller.GetGuideSubmissions)
 		authorized.PUT("/submissions/:id/review", middleware.AuthorizeRoles("company", "guide"), controller.ReviewSubmission)
+
+		// 💬 Chat routes
+		authorized.POST("/chat/start", middleware.AuthorizeRoles("student"), controller.StartConversation)
+		authorized.POST("/chat/send", middleware.AuthorizeRoles("student", "guide"), controller.SendMessage)
+		authorized.GET("/chat/history/:student_id/:guide_id", middleware.AuthorizeRoles("student", "guide"), controller.GetChatHistory)
+		authorized.GET("/chat/conversations", middleware.AuthorizeRoles("student", "guide"), controller.GetUserConversations)
+		authorized.GET("/chat/connected-guides", middleware.AuthorizeRoles("student"), controller.GetConnectedGuides)
 
 	}
 

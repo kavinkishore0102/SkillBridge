@@ -15,6 +15,12 @@ import PostProject from './PostProject';
 import CompanyProjects from './CompanyProjects';
 import CompanyApplications from './CompanyApplications';
 import Submissions from './Submissions';
+import Guides from './Guides';
+import GuidesTest from './GuidesTest';
+import GuidesSimple from './GuidesSimple';
+import Chat from './Chat';
+import Conversations from './Conversations';
+import DebugPage from './DebugPage';
 import './styles/professional.css';
 
 function AppContent() {
@@ -38,6 +44,11 @@ function AppContent() {
           <Route path="/company/projects" element={<CompanyProjects />} />
           <Route path="/company/applications" element={<CompanyApplications />} />
           <Route path="/submissions" element={<Submissions />} />
+          <Route path="/guides" element={<GuidesSimple />} />
+          <Route path="/guides-full" element={<Guides />} />
+          <Route path="/chat/:studentId/:guideId" element={<Chat />} />
+          <Route path="/conversations" element={<Conversations />} />
+          <Route path="/debug" element={<DebugPage />} />
         </Routes>
       </div>
       

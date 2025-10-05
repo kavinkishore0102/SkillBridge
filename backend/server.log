@@ -1,0 +1,49 @@
+MySQL DB connected successfully
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /health                   --> SkillBridge/router.SetupRouter.func2 (4 handlers)
+[GIN-debug] POST   /api/signup               --> SkillBridge/controller.SignUp (4 handlers)
+[GIN-debug] POST   /api/login                --> SkillBridge/controller.Login (4 handlers)
+[GIN-debug] POST   /api/google-oauth         --> SkillBridge/controller.GoogleOAuth (4 handlers)
+[GIN-debug] GET    /api/projects             --> SkillBridge/controller.GetAllProjects (4 handlers)
+[GIN-debug] GET    /api/projects/:id         --> SkillBridge/controller.GetProjectById (4 handlers)
+[GIN-debug] GET    /api/student/:id          --> SkillBridge/controller.GetPublicStudentProfile (4 handlers)
+[GIN-debug] GET    /api/company/:id          --> SkillBridge/controller.GetPublicCompanyProfile (4 handlers)
+[GIN-debug] GET    /api/guides               --> SkillBridge/controller.GetAllGuides (4 handlers)
+[GIN-debug] GET    /api/dashboard/admin      --> SkillBridge/controller.AdminDashboard (5 handlers)
+[GIN-debug] GET    /api/profile              --> SkillBridge/controller.GetProfile (5 handlers)
+[GIN-debug] PUT    /api/profile              --> SkillBridge/controller.UpdateProfile (5 handlers)
+[GIN-debug] POST   /api/refresh-token        --> SkillBridge/controller.RefreshToken (5 handlers)
+[GIN-debug] POST   /api/github/token         --> SkillBridge/controller.SetGithubToken (5 handlers)
+[GIN-debug] DELETE /api/github/token         --> SkillBridge/controller.RemoveGithubToken (5 handlers)
+[GIN-debug] POST   /api/projects             --> SkillBridge/controller.PostProject (6 handlers)
+[GIN-debug] DELETE /api/projects/:id         --> SkillBridge/controller.DeleteProject (6 handlers)
+[GIN-debug] DELETE /api/projects/:id/apply   --> SkillBridge/controller.WithdrawApplication (6 handlers)
+[GIN-debug] POST   /api/projects/apply       --> SkillBridge/controller.ApplyToProject (6 handlers)
+[GIN-debug] POST   /api/projects/submit-github --> SkillBridge/controller.SubmitGithubRepo (6 handlers)
+[GIN-debug] GET    /api/projects/:id/applicants --> SkillBridge/controller.GetProjectApplicants (6 handlers)
+[GIN-debug] POST   /api/projects/:id/submit  --> SkillBridge/controller.SubmitProject (6 handlers)
+[GIN-debug] GET    /api/projects/:id/submissions --> SkillBridge/controller.GetProjectSubmissions (6 handlers)
+[GIN-debug] POST   /api/submissions/:id/review --> SkillBridge/controller.ReviewSubmission (6 handlers)
+[GIN-debug] GET    /api/my-submissions       --> SkillBridge/controller.GetMySubmissions (6 handlers)
+[GIN-debug] GET    /api/dashboard/student    --> SkillBridge/controller.StudentDashboard (6 handlers)
+[GIN-debug] GET    /api/dashboard/company    --> SkillBridge/controller.CompanyDashboard (6 handlers)
+[GIN-debug] GET    /api/dashboard/guide      --> SkillBridge/controller.GuideDashboard (6 handlers)
+[GIN-debug] GET    /api/company/applications --> SkillBridge/controller.GetCompanyApplications (6 handlers)
+[GIN-debug] GET    /api/company/projects     --> SkillBridge/controller.GetCompanyProjects (6 handlers)
+[GIN-debug] GET    /api/my-applications      --> SkillBridge/controller.GetMyApplications (6 handlers)
+[GIN-debug] GET    /api/guide/submissions    --> SkillBridge/controller.GetGuideSubmissions (6 handlers)
+[GIN-debug] PUT    /api/submissions/:id/review --> SkillBridge/controller.ReviewSubmission (6 handlers)
+[GIN-debug] POST   /api/chat/start           --> SkillBridge/controller.StartConversation (6 handlers)
+[GIN-debug] POST   /api/chat/send            --> SkillBridge/controller.SendMessage (6 handlers)
+[GIN-debug] GET    /api/chat/history/:student_id/:guide_id --> SkillBridge/controller.GetChatHistory (6 handlers)
+[GIN-debug] GET    /api/chat/conversations   --> SkillBridge/controller.GetUserConversations (6 handlers)
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :8080
+[GIN] 2025/10/05 - 11:16:46 | 200 |    1.690458ms |             ::1 | GET      "/api/guides"
+signal: killed

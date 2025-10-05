@@ -257,8 +257,11 @@ func SubmitProject(c *gin.Context) {
 	}
 
 	var input struct {
-		GitHubLink string `json:"github_link"`
-		Notes      string `json:"notes"`
+		GitHubLink    string `json:"github_link"`
+		GithubRepoURL string `json:"github_repo_url"`
+		Notes         string `json:"notes"`
+		Description   string `json:"description"`
+		DemoURL       string `json:"demo_url"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -273,17 +276,40 @@ func SubmitProject(c *gin.Context) {
 		return
 	}
 
+	// Use github_repo_url if provided, otherwise fall back to github_link
+	githubURL := input.GithubRepoURL
+	if githubURL == "" {
+		githubURL = input.GitHubLink
+	}
+
+	// Use description if provided, otherwise fall back to notes
+	description := input.Description
+	if description == "" {
+		description = input.Notes
+	}
+
 	submission := models.Submission{
 		ProjectID:   uint(projectID),
 		StudentID:   studentID,
-		GithubLink:  input.GitHubLink,
-		Notes:       input.Notes,
+		GithubLink:  githubURL,      // For backward compatibility
+		GithubURL:   githubURL,      // New field
+		DemoURL:     input.DemoURL,  // Demo/Live URL
+		Notes:       description,    // For backward compatibility
+		Description: description,    // New field
+		Status:      "submitted",    // Set initial status
 		SubmittedAt: time.Now(),
 	}
 
 	if err := DB.Create(&submission).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Submission failed"})
 		return
+	}
+
+	// Update the application status to "submitted" when final submission is made
+	var application models.Application
+	if err := DB.Where("student_id = ? AND project_id = ?", studentID, projectID).First(&application).Error; err == nil {
+		application.Status = "submitted"
+		DB.Save(&application)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Project submitted successfully", "submission": submission})

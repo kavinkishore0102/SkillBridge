@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from './contexts/ThemeContext';
 import { useNotifications } from './contexts/NotificationContext';
-import { utils, dashboardAPI, projectAPI } from './utils/api';
+import { utils, dashboardAPI, projectAPI, submissionAPI } from './utils/api';
 
 function AppliedProjects() {
   const [appliedProjects, setAppliedProjects] = useState([]);
@@ -13,6 +13,7 @@ function AppliedProjects() {
   const [githubRepoUrl, setGithubRepoUrl] = useState('');
   const [submittingGithub, setSubmittingGithub] = useState(false);
   const [isFetching, setIsFetching] = useState(false); // Add flag to prevent concurrent fetches
+
   const navigate = useNavigate();
   const theme = useTheme();
   const { addNotification } = useNotifications();
@@ -218,9 +219,8 @@ function AppliedProjects() {
             : app
         ));
         
-        setShowGithubModal(false);
-        setGithubRepoUrl('');
-        setSelectedApplication(null);
+        // After GitHub repo submission, automatically create final submission
+        createFinalSubmission();
       } else {
         alert(data.error || 'Failed to submit GitHub repository');
         console.error('GitHub submission failed:', data);
@@ -232,6 +232,60 @@ function AppliedProjects() {
     } finally {
       setSubmittingGithub(false);
     }
+  };
+
+
+
+  const createFinalSubmission = async () => {
+    try {
+      const token = utils.getToken();
+      const submissionData = {
+        github_repo_url: githubRepoUrl,
+        description: `Final submission for ${selectedApplication?.project_title || selectedApplication?.project?.title}`,
+        demo_url: ''
+      };
+
+      await submissionAPI.submitProject(
+        selectedApplication.project_id,
+        submissionData,
+        token
+      );
+
+      addNotification(
+        `🎉 Final submission completed! Status updated to "submitted" for "${selectedApplication?.project_title || selectedApplication?.project?.title}"`,
+        "Just now"
+      );
+
+      // Update the local application status to "submitted"
+      setAppliedProjects(prev => prev.map(app => 
+        (app.ID || app.id) === (selectedApplication.ID || selectedApplication.id)
+          ? { ...app, status: 'submitted' }
+          : app
+      ));
+
+      // Close modal and reset states
+      setShowGithubModal(false);
+      setGithubRepoUrl('');
+      setSelectedApplication(null);
+
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('applicationsUpdated'));
+
+    } catch (error) {
+      console.error('Error creating final submission:', error);
+      alert('GitHub repo submitted but final submission failed. Please try again from Submissions page.');
+      
+      // Still close the modal since GitHub repo was submitted successfully
+      setShowGithubModal(false);
+      setGithubRepoUrl('');
+      setSelectedApplication(null);
+    }
+  };
+
+  const handleCloseGithubModal = () => {
+    setShowGithubModal(false);
+    setGithubRepoUrl('');
+    setSelectedApplication(null);
   };
 
   const getStatusColor = (status) => {
@@ -624,8 +678,10 @@ function AppliedProjects() {
                       e.target.style.boxShadow = 'none';
                     }}
                   >
-                    {application.github_repo_url ? '🐙 Update Repo' : '📤 Submit Repo'}
+                    {application.github_repo_url ? '🐙 Update & Submit' : '📤 Submit Repo'}
                   </button>
+
+
                   
                   {(application.status === 'pending' || !application.status) && (
                     <button
@@ -697,7 +753,7 @@ function AppliedProjects() {
               alignItems: 'center',
               gap: '8px'
             }}>
-              <span style={{ fontSize: '24px' }}>🐙</span>
+              <span style={{ fontSize: '24px' }}></span>
               Submit GitHub Repository
             </h3>
             
@@ -710,6 +766,8 @@ function AppliedProjects() {
               <strong style={{ color: theme.colors.text }}>
                 {selectedApplication?.project_title || selectedApplication?.project?.title}
               </strong>
+              <br /><br />
+              <em>Note: This will automatically create your final submission and update your application status to "submitted".</em>
             </p>
 
             <div style={{ marginBottom: '20px' }}>
@@ -760,11 +818,7 @@ function AppliedProjects() {
               justifyContent: 'flex-end'
             }}>
               <button
-                onClick={() => {
-                  setShowGithubModal(false);
-                  setGithubRepoUrl('');
-                  setSelectedApplication(null);
-                }}
+                onClick={handleCloseGithubModal}
                 disabled={submittingGithub}
                 style={{
                   background: 'transparent',
@@ -780,6 +834,7 @@ function AppliedProjects() {
               >
                 Cancel
               </button>
+              
               <button
                 onClick={submitGithubRepo}
                 disabled={submittingGithub || !githubRepoUrl.trim()}
@@ -795,7 +850,7 @@ function AppliedProjects() {
                   transition: 'background-color 0.3s ease'
                 }}
               >
-                {submittingGithub ? 'Submitting...' : 'Submit Repository'}
+                {submittingGithub ? 'Submitting...' : 'Submit & Complete'}
               </button>
             </div>
           </div>

@@ -15,6 +15,7 @@ func main() {
 	db.AutoMigrate(&models.Application{})
 	db.AutoMigrate(&models.Submission{})
 	db.AutoMigrate(&models.Notification{})
+	db.AutoMigrate(&models.Chat{})
 	controller.InitAuth(db)
 	//setup router
 	r := router.SetupRouter()
