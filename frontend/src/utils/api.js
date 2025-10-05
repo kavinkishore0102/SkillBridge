@@ -162,6 +162,14 @@ export const projectAPI = {
   }
 };
 
+// Guides API calls
+export const guidesAPI = {
+  // Get all guides (public)
+  getAllGuides: async () => {
+    return await apiCall('/guides', 'GET');
+  }
+};
+
 // Dashboard API calls
 export const dashboardAPI = {
   // Get student dashboard
@@ -256,5 +264,42 @@ export const utils = {
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+  }
+};
+
+// Chat API
+export const chatAPI = {
+  // Start a conversation with a guide
+  startConversation: async (guideId) => {
+    const token = utils.getToken();
+    return apiCall('/chat/start', 'POST', { guide_id: guideId }, token);
+  },
+
+  // Send a message
+  sendMessage: async (studentId, guideId, message) => {
+    const token = utils.getToken();
+    return apiCall('/chat/send', 'POST', {
+      student_id: studentId,
+      guide_id: guideId,
+      message: message
+    }, token);
+  },
+
+  // Get chat history between student and guide
+  getChatHistory: async (studentId, guideId) => {
+    const token = utils.getToken();
+    return apiCall(`/chat/history/${studentId}/${guideId}`, 'GET', null, token);
+  },
+
+  // Get all conversations for current user
+  getConversations: async () => {
+    const token = utils.getToken();
+    return apiCall('/chat/conversations', 'GET', null, token);
+  },
+
+  // Get connected guides for current student
+  getConnectedGuides: async () => {
+    const token = utils.getToken();
+    return apiCall('/chat/connected-guides', 'GET', null, token);
   }
 };

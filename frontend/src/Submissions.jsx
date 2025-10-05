@@ -9,6 +9,7 @@ function Submissions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
   const theme = useTheme();
   const { addNotification } = useNotifications();
 
@@ -19,8 +20,10 @@ function Submissions() {
       return;
     }
 
+
+
     fetchSubmissions();
-  }, [navigate]);
+  }, [navigate, location.state]);
 
   const fetchSubmissions = async () => {
     try {
@@ -73,6 +76,8 @@ function Submissions() {
     // Navigate to submission details page
     navigate(`/submissions/${submissionId}`);
   };
+
+
 
   if (loading) {
     return (
@@ -431,6 +436,8 @@ function Submissions() {
           </div>
         )}
       </div>
+
+
 
       <style>{`
         @keyframes spin {

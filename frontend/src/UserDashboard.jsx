@@ -539,7 +539,7 @@ function Dashboard() {
                 </button>
 
                 <button
-                  onClick={() => navigate('/chat')}
+                  onClick={() => navigate('/guides')}
                   style={{
                     padding: '15px 20px',
                     backgroundColor: theme.colors.success,
@@ -558,7 +558,29 @@ function Dashboard() {
                   onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                   onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
                 >
-                  🤖 AI Assistant
+                  🎓 Connect with Guides
+                </button>
+                <button
+                  onClick={() => navigate('/conversations')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.info,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  💬 My Conversations
                 </button>
               </>
             )}
@@ -728,6 +750,29 @@ function Dashboard() {
                   onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
                 >
                   📤 All Submissions
+                </button>
+
+                <button
+                  onClick={() => navigate('/conversations')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.info,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  💬 Student Conversations
                 </button>
               </>
             )}

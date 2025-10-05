@@ -11,7 +11,9 @@ type Submission struct {
 	StudentID     uint      `json:"student_id"`
 	GithubLink    string    `json:"github_link"`
 	GithubURL     string    `json:"github_url"`
+	DemoURL       string    `json:"demo_url"`
 	Notes         string    `json:"notes"`
+	Description   string    `json:"description"`
 	Status        string    `json:"status"`
 	Feedback      string    `json:"feedback"`
 	ReviewStatus  string    `json:"review_status"`  // Guide review: approved, rejected, pending

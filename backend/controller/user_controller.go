@@ -7,22 +7,54 @@ import (
 	"strconv"
 )
 
+func GetAllGuides(c *gin.Context) {
+	var guides []models.User
+	
+	// Get all users with role "guide"
+	if err := DB.Where("role = ?", "guide").Find(&guides).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch guides"})
+		return
+	}
+
+	// Return only public fields for guides
+	var publicGuides []gin.H
+	for _, guide := range guides {
+		publicGuides = append(publicGuides, gin.H{
+			"id":           guide.ID,
+			"name":         guide.Name,
+			"bio":          guide.Bio,
+			"picture":      guide.Picture,
+			"github_url":   guide.GithubURL,
+			"linkedin":     guide.LinkedIn,
+			"university":   guide.University,
+			"major":        guide.Major,
+			"year":         guide.Year,
+			"position":     guide.Position,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"guides": publicGuides,
+		"count":  len(publicGuides),
+	})
+}
+
 func GetPublicStudentProfile(c *gin.Context) {
 	idParam := c.Param("id")
 	userID, err := strconv.Atoi(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	var user models.User
 	if err := DB.First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "Student not found!"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Student not found!"})
 		return
 	}
 
 	if user.Role != "student" {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "User is not Student!"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User is not Student!"})
 		return
 	}
 
