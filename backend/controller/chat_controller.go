@@ -139,10 +139,11 @@ func GetUserConversations(c *gin.Context) {
 	role := userRole.(string)
 
 	var conversations []models.ChatConversation
+	var err error
 
 	if role == "student" {
 		// Get conversations where user is the student
-		DB.Raw(`
+		err = DB.Raw(`
 			SELECT 
 				c.student_id,
 				c.guide_id,
@@ -168,10 +169,10 @@ func GetUserConversations(c *gin.Context) {
 				GROUP BY student_id, guide_id
 			)
 			ORDER BY c.created_at DESC
-		`, uid, uid, uid).Scan(&conversations)
+		`, uid, uid, uid).Scan(&conversations).Error
 	} else if role == "guide" {
 		// Get conversations where user is the guide
-		DB.Raw(`
+		err = DB.Raw(`
 			SELECT 
 				c.student_id,
 				c.guide_id,
@@ -197,7 +198,15 @@ func GetUserConversations(c *gin.Context) {
 				GROUP BY student_id, guide_id
 			)
 			ORDER BY c.created_at DESC
-		`, uid, uid, uid).Scan(&conversations)
+		`, uid, uid, uid).Scan(&conversations).Error
+	} else {
+		c.JSON(http.StatusForbidden, gin.H{"error": "This endpoint is only available for students and guides"})
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch conversations: " + err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{

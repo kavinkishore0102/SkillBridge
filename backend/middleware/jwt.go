@@ -45,6 +45,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Get the token from the Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
+			fmt.Printf("DEBUG: Authorization header missing for path: %s\n", c.Request.URL.Path)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header missing"})
 			return
 		}
@@ -52,11 +53,13 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Expecting header format: "Bearer <token>"
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
+			fmt.Printf("DEBUG: Invalid Authorization header format for path: %s, header: %s\n", c.Request.URL.Path, authHeader[:min(20, len(authHeader))])
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid Authorization header format"})
 			return
 		}
 
 		tokenStr := parts[1]
+		fmt.Printf("DEBUG: Parsing token for path: %s, token length: %d\n", c.Request.URL.Path, len(tokenStr))
 		
 		// Parse and verify token
 		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
@@ -68,10 +71,12 @@ func AuthMiddleware() gin.HandlerFunc {
 		})
 
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			fmt.Printf("DEBUG: Token parse error for path: %s, error: %v\n", c.Request.URL.Path, err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token", "details": err.Error()})
 			return
 		}
 		if !token.Valid {
+			fmt.Printf("DEBUG: Token invalid for path: %s\n", c.Request.URL.Path)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
 		}
