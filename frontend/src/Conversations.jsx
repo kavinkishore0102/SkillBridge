@@ -9,16 +9,19 @@ const Conversations = () => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const currentUser = utils.getUser();
+  const [currentUser, setCurrentUser] = useState(() => utils.getUser());
 
   useEffect(() => {
     // Check if user is logged in
-    if (!currentUser) {
+    const user = utils.getUser();
+    if (!user) {
       navigate('/');
       return;
     }
+    setCurrentUser(user);
     fetchConversations();
-  }, [navigate, currentUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   const fetchConversations = async () => {
     try {
