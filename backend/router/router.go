@@ -9,6 +9,10 @@ import (
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
 
+	// Set trusted proxies - only trust localhost for development
+	// In production, set this to your actual proxy IPs
+	router.SetTrustedProxies([]string{"127.0.0.1", "::1"})
+
 	// CORS middleware
 	router.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")

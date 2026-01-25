@@ -25,15 +25,13 @@ const apiCall = async (endpoint, method = 'GET', data = null, token = null) => {
   console.log('Method:', method);
   console.log('Data:', data);
   
-  // Validate token if provided
+  // Validate token if provided (but don't block the request - let backend validate)
   if (token && !isValidToken(token)) {
-    console.error('Invalid or expired token detected');
-    utils.logout();
-    window.location.href = '/';
-    throw new Error('Session expired. Please login again.');
+    console.warn('Token validation failed on frontend, but sending to backend anyway');
+    // Don't logout here - let the backend decide if token is invalid
   }
   
-  console.log('Token valid:', token ? 'Yes' : 'No token');
+  console.log('Token valid:', token ? (isValidToken(token) ? 'Yes' : 'No (but sending anyway)') : 'No token');
 
   const headers = {
     'Content-Type': 'application/json',
@@ -55,6 +53,7 @@ const apiCall = async (endpoint, method = 'GET', data = null, token = null) => {
   const fullUrl = `${API_BASE_URL}${endpoint}`;
   console.log('Full URL:', fullUrl);
   console.log('Config:', config);
+  console.log('Authorization header:', token ? `Bearer ${token.substring(0, 20)}...` : 'None');
 
   try {
     console.log('Making fetch request...');
@@ -64,12 +63,28 @@ const apiCall = async (endpoint, method = 'GET', data = null, token = null) => {
     console.log('Response headers:', response.headers);
     
     console.log('Parsing response as JSON...');
-    const result = await response.json();
+    let result;
+    try {
+      const text = await response.text();
+      result = text ? JSON.parse(text) : {};
+    } catch (parseError) {
+      console.error('Failed to parse JSON response:', parseError);
+      throw new Error(`Server error: ${response.status} ${response.statusText}`);
+    }
     console.log('Parsed result:', result);
 
     if (!response.ok) {
       console.error('Response not OK:', response.status, result);
-      throw new Error(result.error || 'API request failed');
+      const errorMessage = result.error || result.message || `API request failed with status ${response.status}`;
+      
+      // If 401, clear token and redirect
+      if (response.status === 401) {
+        console.error('401 Unauthorized - clearing token');
+        utils.logout();
+        throw new Error('Session expired. Please login again.');
+      }
+      
+      throw new Error(errorMessage);
     }
 
     console.log('=== API CALL SUCCESSFUL ===');

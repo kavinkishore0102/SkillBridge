@@ -684,29 +684,6 @@ function Dashboard() {
             {user.role === 'guide' && (
               <>
                 <button
-                  onClick={() => navigate('/guide/projects')}
-                  style={{
-                    padding: '15px 20px',
-                    backgroundColor: theme.colors.primary,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                >
-                  📋 Assigned Projects
-                </button>
-
-                <button
                   onClick={() => navigate('/guide/reviews')}
                   style={{
                     padding: '15px 20px',
@@ -727,29 +704,6 @@ function Dashboard() {
                   onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
                 >
                   ⭐ Pending Reviews
-                </button>
-
-                <button
-                  onClick={() => navigate('/guide/submissions')}
-                  style={{
-                    padding: '15px 20px',
-                    backgroundColor: theme.colors.warning,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                >
-                  📤 All Submissions
                 </button>
 
                 <button
