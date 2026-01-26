@@ -20,6 +20,7 @@ import GuidesTest from './GuidesTest';
 import GuidesSimple from './GuidesSimple';
 import Chat from './Chat';
 import Conversations from './Conversations';
+import PendingConfirmations from './PendingConfirmations';
 import DebugPage from './DebugPage';
 import './styles/professional.css';
 
@@ -46,6 +47,7 @@ function AppContent() {
           <Route path="/submissions" element={<Submissions />} />
           <Route path="/guides" element={<GuidesSimple />} />
           <Route path="/guides-full" element={<Guides />} />
+          <Route path="/guide/pending-confirmations" element={<PendingConfirmations />} />
           <Route path="/chat/:studentId/:guideId" element={<Chat />} />
           <Route path="/conversations" element={<Conversations />} />
           <Route path="/debug" element={<DebugPage />} />

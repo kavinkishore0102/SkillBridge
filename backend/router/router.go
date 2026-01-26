@@ -45,11 +45,10 @@ func SetupRouter() *gin.Engine {
 
 	// ✅ Protected routes
 	authorized := router.Group("/api")
-	// router/router.go
-	authorized.GET("/dashboard/admin", middleware.AuthorizeRoles("admin"), controller.AdminDashboard)
-
 	authorized.Use(middleware.AuthMiddleware())
 	{
+		authorized.GET("/dashboard/admin", middleware.AuthorizeRoles("admin"), controller.AdminDashboard)
+
 		// Profile routes (for all roles)
 		authorized.GET("/profile", controller.GetProfile)
 		authorized.PUT("/profile", controller.UpdateProfile)
@@ -88,6 +87,8 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/chat/history/:student_id/:guide_id", middleware.AuthorizeRoles("student", "guide"), controller.GetChatHistory)
 		authorized.GET("/chat/conversations", middleware.AuthorizeRoles("student", "guide"), controller.GetUserConversations)
 		authorized.GET("/chat/connected-guides", middleware.AuthorizeRoles("student"), controller.GetConnectedGuides)
+		authorized.GET("/guide/pending-confirmations", middleware.AuthorizeRoles("guide"), controller.GetPendingConfirmations)
+		authorized.POST("/guide/confirm-connection", middleware.AuthorizeRoles("guide"), controller.ConfirmConnection)
 
 	}
 

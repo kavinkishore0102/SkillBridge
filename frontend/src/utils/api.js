@@ -316,5 +316,20 @@ export const chatAPI = {
   getConnectedGuides: async () => {
     const token = utils.getToken();
     return apiCall('/chat/connected-guides', 'GET', null, token);
+  },
+
+  // Get pending connection confirmations for a guide
+  getPendingConfirmations: async () => {
+    const token = utils.getToken();
+    return apiCall('/guide/pending-confirmations', 'GET', null, token);
+  },
+
+  // Confirm (accept or reject) a connection request
+  confirmConnection: async (requestId, action) => {
+    const token = utils.getToken();
+    return apiCall('/guide/confirm-connection', 'POST', {
+      request_id: requestId,
+      action: action  // 'accept' or 'reject'
+    }, token);
   }
 };
