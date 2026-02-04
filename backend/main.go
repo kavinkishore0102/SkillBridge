@@ -17,7 +17,11 @@ func main() {
 	db.AutoMigrate(&models.Notification{})
 	db.AutoMigrate(&models.Chat{})
 	db.AutoMigrate(&models.GuideConnectionRequest{})
+	db.AutoMigrate(&models.JobListing{})
+	db.AutoMigrate(&models.JobApplication{})
+	db.AutoMigrate(&models.UserSavedJob{})
 	controller.InitAuth(db)
+	controller.InitJobDB(db)
 	//setup router
 	r := router.SetupRouter()
 	

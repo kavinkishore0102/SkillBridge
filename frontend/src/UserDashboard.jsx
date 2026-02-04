@@ -611,6 +611,29 @@ function Dashboard() {
                 </button>
 
                 <button
+                  onClick={() => navigate('/post-job')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.tertiary || '#6b5b95',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  ➕ Post New Job
+                </button>
+
+                <button
                   onClick={() => navigate('/company/projects')}
                   style={{
                     padding: '15px 20px',

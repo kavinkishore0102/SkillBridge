@@ -43,6 +43,10 @@ func SetupRouter() *gin.Engine {
 	router.GET("/api/company/:id", controller.GetPublicCompanyProfile)
 	router.GET("/api/guides", controller.GetAllGuides)
 
+	// 🔍 Publicly accessible job listings
+	router.GET("/api/jobs", controller.GetAllJobListings)
+	router.GET("/api/jobs/:id", controller.GetJobListingByID)
+
 	// ✅ Protected routes
 	authorized := router.Group("/api")
 	authorized.Use(middleware.AuthMiddleware())
@@ -89,6 +93,16 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/chat/connected-guides", middleware.AuthorizeRoles("student"), controller.GetConnectedGuides)
 		authorized.GET("/guide/pending-confirmations", middleware.AuthorizeRoles("guide"), controller.GetPendingConfirmations)
 		authorized.POST("/guide/confirm-connection", middleware.AuthorizeRoles("guide"), controller.ConfirmConnection)
+
+		// 💼 Job listing routes (Company side)
+		authorized.POST("/jobs", middleware.AuthorizeRoles("company"), controller.CreateJobListing)
+		authorized.GET("/company/jobs", middleware.AuthorizeRoles("company"), controller.GetCompanyJobListings)
+		authorized.PUT("/jobs/:id", middleware.AuthorizeRoles("company"), controller.UpdateJobListing)
+		authorized.DELETE("/jobs/:id", middleware.AuthorizeRoles("company"), controller.DeleteJobListing)
+		authorized.GET("/jobs/:id/applications", middleware.AuthorizeRoles("company"), controller.GetJobApplications)
+		authorized.GET("/applications/:id", middleware.AuthorizeRoles("company"), controller.GetApplicationDetail)
+		authorized.PATCH("/applications/:id/status", middleware.AuthorizeRoles("company"), controller.UpdateApplicationStatus)
+		authorized.GET("/company/application-stats", middleware.AuthorizeRoles("company"), controller.GetApplicationStats)
 
 	}
 

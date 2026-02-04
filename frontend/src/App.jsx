@@ -12,8 +12,10 @@ import EditProfile from './EditProfile';
 import AppliedProjects from './AppliedProjects';
 import ProjectDetails from './ProjectDetails';
 import PostProject from './PostProject';
+import PostJob from './PostJob';
 import CompanyProjects from './CompanyProjects';
 import CompanyApplications from './CompanyApplications';
+import CompanyJobManagement from './CompanyJobManagement';
 import Submissions from './Submissions';
 import Guides from './Guides';
 import GuidesTest from './GuidesTest';
@@ -42,8 +44,10 @@ function AppContent() {
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/applied-projects" element={<AppliedProjects />} />
           <Route path="/post-project" element={<PostProject />} />
+          <Route path="/post-job" element={<PostJob />} />
           <Route path="/company/projects" element={<CompanyProjects />} />
           <Route path="/company/applications" element={<CompanyApplications />} />
+          <Route path="/company/jobs" element={<CompanyJobManagement />} />
           <Route path="/submissions" element={<Submissions />} />
           <Route path="/guides" element={<GuidesSimple />} />
           <Route path="/guides-full" element={<Guides />} />
