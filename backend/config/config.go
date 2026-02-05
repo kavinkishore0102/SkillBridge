@@ -7,7 +7,7 @@ import (
 )
 
 func ConnectDB() *gorm.DB {
-	dsn := "root:root1234@tcp(127.0.0.1:3306)/skillbridge?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "root:Vivitha@17@tcp(127.0.0.1:3306)/skillbridge?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("Failed to connect to MySQL database: " + err.Error())

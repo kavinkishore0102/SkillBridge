@@ -41,7 +41,7 @@ const getDashboardConfig = (role, data, user, theme) => {
       title: 'Guide Dashboard',
       backgroundColor: theme.colors.surface,
       stats: [
-        { key: 'assigned_projects', label: 'Assigned Projects', color: theme.colors.warning, value: data?.assigned_projects || 0 },
+        { key: 'assigned_projects', label: 'Assigned Students', color: theme.colors.warning, value: data?.assigned_projects || 0 },
         { key: 'total_submissions', label: 'Total Submissions', color: theme.colors.primary, value: data?.total_submissions || 0 },
         { key: 'pending_reviews', label: 'Pending Reviews', color: theme.colors.danger, value: data?.pending_reviews || 0 },
         { key: 'completed_reviews', label: 'Completed Reviews', color: theme.colors.success, value: data?.completed_reviews || 0 },
@@ -611,6 +611,29 @@ function Dashboard() {
                 </button>
 
                 <button
+                  onClick={() => navigate('/post-job')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.tertiary || '#6b5b95',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  ➕ Post New Job
+                </button>
+
+                <button
                   onClick={() => navigate('/company/projects')}
                   style={{
                     padding: '15px 20px',
@@ -683,6 +706,29 @@ function Dashboard() {
 
             {user.role === 'guide' && (
               <>
+                <button
+                  onClick={() => navigate('/guide/pending-confirmations')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.danger,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  ✓ Pending Confirmations
+                </button>
+
                 <button
                   onClick={() => navigate('/guide/reviews')}
                   style={{

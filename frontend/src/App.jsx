@@ -12,14 +12,17 @@ import EditProfile from './EditProfile';
 import AppliedProjects from './AppliedProjects';
 import ProjectDetails from './ProjectDetails';
 import PostProject from './PostProject';
+import PostJob from './PostJob';
 import CompanyProjects from './CompanyProjects';
 import CompanyApplications from './CompanyApplications';
+import CompanyJobManagement from './CompanyJobManagement';
 import Submissions from './Submissions';
 import Guides from './Guides';
 import GuidesTest from './GuidesTest';
 import GuidesSimple from './GuidesSimple';
 import Chat from './Chat';
 import Conversations from './Conversations';
+import PendingConfirmations from './PendingConfirmations';
 import DebugPage from './DebugPage';
 import './styles/professional.css';
 
@@ -41,11 +44,14 @@ function AppContent() {
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/applied-projects" element={<AppliedProjects />} />
           <Route path="/post-project" element={<PostProject />} />
+          <Route path="/post-job" element={<PostJob />} />
           <Route path="/company/projects" element={<CompanyProjects />} />
           <Route path="/company/applications" element={<CompanyApplications />} />
+          <Route path="/company/jobs" element={<CompanyJobManagement />} />
           <Route path="/submissions" element={<Submissions />} />
           <Route path="/guides" element={<GuidesSimple />} />
           <Route path="/guides-full" element={<Guides />} />
+          <Route path="/guide/pending-confirmations" element={<PendingConfirmations />} />
           <Route path="/chat/:studentId/:guideId" element={<Chat />} />
           <Route path="/conversations" element={<Conversations />} />
           <Route path="/debug" element={<DebugPage />} />

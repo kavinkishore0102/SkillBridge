@@ -215,7 +215,7 @@ func GetUserConversations(c *gin.Context) {
 	})
 }
 
-// StartConversation - Initialize a conversation between student and guide
+// StartConversation - Create a pending connection request from student to guide
 func StartConversation(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -241,9 +241,9 @@ func StartConversation(c *gin.Context) {
 	role := userRole.(string)
 	uid := userID.(uint)
 
-	// Only students can start conversations with guides
+	// Only students can request connections with guides
 	if role != "student" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only students can start conversations with guides"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only students can request connections with guides"})
 		return
 	}
 
@@ -261,44 +261,83 @@ func StartConversation(c *gin.Context) {
 		return
 	}
 
-	// Check if conversation already exists
-	var existingChat models.Chat
-	err := DB.Where("student_id = ? AND guide_id = ?", uid, input.GuideID).First(&existingChat).Error
+	// Check if a connection request already exists
+	var existingRequest models.GuideConnectionRequest
+	err := DB.Where("student_id = ? AND guide_id = ?", uid, input.GuideID).First(&existingRequest).Error
 	
 	if err == nil {
-		// Conversation exists, return it
-		c.JSON(http.StatusOK, gin.H{
-			"message":     "Conversation already exists",
-			"student_id":  uid,
-			"guide_id":    input.GuideID,
-			"guide_name":  guide.Name,
-			"student_name": student.Name,
+		// Request already exists
+		if existingRequest.Status == "accepted" {
+			// If already accepted, check if chat exists
+			var existingChat models.Chat
+			chatErr := DB.Where("student_id = ? AND guide_id = ?", uid, input.GuideID).First(&existingChat).Error
+			
+			if chatErr == nil {
+				// Chat already exists
+				c.JSON(http.StatusOK, gin.H{
+					"message":     "Conversation already exists",
+					"student_id":  uid,
+					"guide_id":    input.GuideID,
+					"guide_name":  guide.Name,
+					"student_name": student.Name,
+				})
+				return
+			}
+
+			// Create initial welcome message
+			initialChat := models.Chat{
+				StudentID:  uid,
+				GuideID:    input.GuideID,
+				Message:    "Conversation started! Feel free to ask your guide any questions.",
+				SenderID:   uid,
+				SenderRole: "student",
+				IsRead:     false,
+				CreatedAt:  time.Now(),
+			}
+
+			if err := DB.Create(&initialChat).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start conversation"})
+				return
+			}
+
+			c.JSON(http.StatusCreated, gin.H{
+				"message":      "Conversation started successfully",
+				"student_id":   uid,
+				"guide_id":     input.GuideID,
+				"guide_name":   guide.Name,
+				"student_name": student.Name,
+			})
+			return
+		}
+
+		// Request is pending or rejected
+		c.JSON(http.StatusConflict, gin.H{
+			"message": "Connection request already " + existingRequest.Status,
+			"status":  existingRequest.Status,
 		})
 		return
 	}
 
-	// Create initial welcome message from the system
-	initialChat := models.Chat{
-		StudentID:  uid,
-		GuideID:    input.GuideID,
-		Message:    "Conversation started! Feel free to ask your guide any questions.",
-		SenderID:   uid,
-		SenderRole: "student",
-		IsRead:     false,
-		CreatedAt:  time.Now(),
+	// Create a new connection request with pending status
+	connectionRequest := models.GuideConnectionRequest{
+		StudentID: uid,
+		GuideID:   input.GuideID,
+		Status:    "pending",
+		CreatedAt: time.Now(),
 	}
 
-	if err := DB.Create(&initialChat).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start conversation"})
+	if err := DB.Create(&connectionRequest).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create connection request"})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":      "Conversation started successfully",
+		"message":      "Connection request sent to guide. Waiting for confirmation.",
 		"student_id":   uid,
 		"guide_id":     input.GuideID,
 		"guide_name":   guide.Name,
 		"student_name": student.Name,
+		"status":       "pending",
 	})
 }
 
@@ -334,5 +373,138 @@ func GetConnectedGuides(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"connected_guide_ids": connectedGuideIds,
 		"count":              len(connectedGuideIds),
+	})
+}
+
+// GetPendingConfirmations - Get pending student connection requests for a guide
+func GetPendingConfirmations(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	userRole, exists := c.Get("role")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found"})
+		return
+	}
+
+	role := userRole.(string)
+	guideID := userID.(uint)
+
+	// Only guides can see pending confirmations
+	if role != "guide" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only guides can access this endpoint"})
+		return
+	}
+
+	var requests []models.GuideConnectionRequest
+	if err := DB.
+		Preload("Student").
+		Where("guide_id = ? AND status = ?", guideID, "pending").
+		Order("created_at DESC").
+		Find(&requests).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch pending requests"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"pending_requests": requests,
+		"count":           len(requests),
+	})
+}
+
+// ConfirmConnection - Guide accepts or rejects a student connection request
+func ConfirmConnection(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	userRole, exists := c.Get("role")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found"})
+		return
+	}
+
+	role := userRole.(string)
+	guideID := userID.(uint)
+
+	// Only guides can confirm connections
+	if role != "guide" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only guides can confirm connections"})
+		return
+	}
+
+	var input struct {
+		RequestID uint   `json:"request_id" binding:"required"`
+		Action    string `json:"action" binding:"required"` // "accept" or "reject"
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if input.Action != "accept" && input.Action != "reject" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Action must be 'accept' or 'reject'"})
+		return
+	}
+
+	// Get the connection request
+	var request models.GuideConnectionRequest
+	if err := DB.First(&request, input.RequestID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Request not found"})
+		return
+	}
+
+	// Verify this guide owns this request
+	if request.GuideID != guideID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You can only confirm your own requests"})
+		return
+	}
+
+	// Update request status
+	newStatus := "rejected"
+	if input.Action == "accept" {
+		newStatus = "accepted"
+	}
+
+	if err := DB.Model(&request).Update("status", newStatus).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update request"})
+		return
+	}
+
+	// If accepted, create the actual conversation with initial message
+	if newStatus == "accepted" {
+		// Check if chat already exists
+		var existingChat models.Chat
+		chatErr := DB.Where("student_id = ? AND guide_id = ?", request.StudentID, request.GuideID).First(&existingChat).Error
+		
+		if chatErr != nil {
+			// Chat doesn't exist, create initial message
+			initialChat := models.Chat{
+				StudentID:  request.StudentID,
+				GuideID:    request.GuideID,
+				Message:    "Your connection request has been accepted! Your guide is ready to help you.",
+				SenderID:   guideID,
+				SenderRole: "guide",
+				IsRead:     false,
+				CreatedAt:  time.Now(),
+			}
+
+			if err := DB.Create(&initialChat).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create conversation"})
+				return
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Connection request " + newStatus,
+		"request_id": request.ID,
+		"status":    newStatus,
 	})
 }

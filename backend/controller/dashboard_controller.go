@@ -114,45 +114,42 @@ func GuideDashboard(c *gin.Context) {
 	}
 
 	// Declare stats variables
-	var assignedProjects int64
+	var assignedStudents int64
 	var totalSubmissions int64
 	var pendingReviews int64
 	var completedReviews int64
 
-	// Count projects assigned to this guide
+	// Count accepted connection requests from students
 	if err := DB.
-		Model(&models.Project{}).
-		Where("guide_id = ?", guideID).
-		Count(&assignedProjects).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count assigned projects"})
+		Model(&models.GuideConnectionRequest{}).
+		Where("guide_id = ? AND status = ?", guideID, "accepted").
+		Count(&assignedStudents).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count assigned students"})
 		return
 	}
 
-	// Count total submissions for projects assigned to this guide
+	// Count pending connection requests (waiting for guide approval)
 	if err := DB.
-		Table("submissions").
-		Joins("JOIN projects ON submissions.project_id = projects.id").
-		Where("projects.guide_id = ?", guideID).
-		Count(&totalSubmissions).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count submissions"})
-		return
-	}
-
-	// Count pending reviews (submissions not yet reviewed)
-	if err := DB.
-		Table("submissions").
-		Joins("JOIN projects ON submissions.project_id = projects.id").
-		Where("projects.guide_id = ? AND submissions.status = ?", guideID, "pending").
+		Model(&models.GuideConnectionRequest{}).
+		Where("guide_id = ? AND status = ?", guideID, "pending").
 		Count(&pendingReviews).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count pending reviews"})
 		return
 	}
 
-	// Count completed reviews (submissions that are accepted or rejected)
+	// Count total submissions for students assigned to this guide
 	if err := DB.
 		Table("submissions").
-		Joins("JOIN projects ON submissions.project_id = projects.id").
-		Where("projects.guide_id = ? AND submissions.status IN ?", guideID, []string{"accepted", "rejected"}).
+		Joins("JOIN guide_connection_requests ON submissions.student_id IN (SELECT student_id FROM guide_connection_requests WHERE guide_id = ? AND status = 'accepted')", guideID).
+		Count(&totalSubmissions).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count submissions"})
+		return
+	}
+
+	// Count completed reviews (accepted connection requests)
+	if err := DB.
+		Model(&models.GuideConnectionRequest{}).
+		Where("guide_id = ? AND status = ?", guideID, "accepted").
 		Count(&completedReviews).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count completed reviews"})
 		return
@@ -160,7 +157,7 @@ func GuideDashboard(c *gin.Context) {
 
 	// Return the dashboard stats
 	c.JSON(http.StatusOK, gin.H{
-		"assigned_projects":  assignedProjects,
+		"assigned_projects":  assignedStudents,
 		"total_submissions":  totalSubmissions,
 		"pending_reviews":    pendingReviews,
 		"completed_reviews":  completedReviews,

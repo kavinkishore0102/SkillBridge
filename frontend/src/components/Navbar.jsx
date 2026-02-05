@@ -45,9 +45,10 @@ const Navbar = () => {
     { name: 'Dashboard', path: '/dashboard', icon: '' },
     ...(user?.role === 'student' ? [{ name: 'Applications', path: '/applied-projects', icon: '' }] : []),
     ...(user?.role === 'student' ? [{ name: 'Submissions', path: '/submissions', icon: '' }] : []),
-    ...(user?.role === 'company' ? [{ name: 'My Projects', path: '/company/projects', icon: '' }] : []),
-    ...(user?.role === 'company' ? [{ name: 'Applications', path: '/company/applications', icon: '' }] : []),
+    
+    ...(user?.role === 'company' ? [{ name: 'Jobs', path: '/company/jobs', icon: '' }] : []),
     ...(user?.role === 'company' ? [{ name: 'Post Project', path: '/post-project', icon: '' }] : []),
+    
     { name: 'Profile', path: '/profile', icon: '' },
   ];
 
