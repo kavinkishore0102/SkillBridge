@@ -9,92 +9,82 @@ import (
 func StudentDashboard(c *gin.Context) {
 	studentID := c.GetUint("userID")
 
-	var appliedCount int64
-	var submissionCount int64
-	var acceptedCount, rejectedCount, pendingCount int64
+	// --- Projects section: applications, accepted, rejected ---
+	var projectApplications int64
+	DB.Model(&models.Application{}).Where("student_id = ?", studentID).Count(&projectApplications)
 
-	// Count applications
-	if err := DB.Model(&models.Application{}).Where("student_id = ?", studentID).Count(&appliedCount).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch applications count"})
-		return
-	}
+	var projectAccepted int64
+	DB.Model(&models.Application{}).Where("student_id = ? AND status = ?", studentID, "approved").Count(&projectAccepted)
 
-	// Count submissions
-	if err := DB.Model(&models.Submission{}).Where("student_id = ?", studentID).Count(&submissionCount).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch submissions count"})
-		return
-	}
+	var projectRejected int64
+	DB.Model(&models.Application{}).Where("student_id = ? AND status = ?", studentID, "rejected").Count(&projectRejected)
 
-	// Count submissions by status
-	DB.Model(&models.Submission{}).Where("student_id = ? AND status = ?", studentID, "accepted").Count(&acceptedCount)
-	DB.Model(&models.Submission{}).Where("student_id = ? AND status = ?", studentID, "rejected").Count(&rejectedCount)
-	DB.Model(&models.Submission{}).Where("student_id = ? AND status = ?", studentID, "pending").Count(&pendingCount)
+	// --- Jobs section: applications, accepted, rejected ---
+	var jobApplications int64
+	DB.Model(&models.JobApplication{}).Where("user_id = ?", studentID).Count(&jobApplications)
+
+	var jobAccepted int64
+	DB.Model(&models.JobApplication{}).Where("user_id = ? AND status = ?", studentID, "Accepted").Count(&jobAccepted)
+
+	var jobRejected int64
+	DB.Model(&models.JobApplication{}).Where("user_id = ? AND status = ?", studentID, "Rejected").Count(&jobRejected)
 
 	c.JSON(http.StatusOK, gin.H{
-		"applied_projects": appliedCount,
-		"submissions":      submissionCount,
-		"submission_summary": gin.H{
-			"accepted": acceptedCount,
-			"rejected": rejectedCount,
-			"pending":  pendingCount,
+		"projects": gin.H{
+			"applications": projectApplications,
+			"accepted":      projectAccepted,
+			"rejected":      projectRejected,
+		},
+		"jobs": gin.H{
+			"applications": jobApplications,
+			"accepted":      jobAccepted,
+			"rejected":      jobRejected,
 		},
 	})
 }
 
 func CompanyDashboard(c *gin.Context) {
-	// Ensure only company users access this endpoint
 	role := c.GetString("role")
 	if role != "company" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	// Get logged-in company ID from JWT middleware
 	companyID := c.GetUint("userID")
 	if companyID == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid company ID"})
 		return
 	}
 
-	// Declare stats variables
+	// --- Projects section: posted, applications ---
 	var postedProjects int64
-	var totalApplicants int64
-	var totalSubmissions int64
+	DB.Model(&models.Project{}).Where("company_id = ?", companyID).Count(&postedProjects)
 
-	// Count posted projects by this company
-	if err := DB.
-		Model(&models.Project{}).
-		Where("company_id = ?", companyID).
-		Count(&postedProjects).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count posted projects"})
-		return
-	}
-
-	// Count total applicants who applied to this company's projects
-	if err := DB.
-		Table("applications").
+	var projectApplications int64
+	DB.Table("applications").
 		Joins("JOIN projects ON applications.project_id = projects.id").
 		Where("projects.company_id = ?", companyID).
-		Count(&totalApplicants).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count applicants"})
-		return
-	}
+		Count(&projectApplications)
 
-	// Count submissions related to this company's projects
-	if err := DB.
-		Table("submissions").
-		Joins("JOIN projects ON submissions.project_id = projects.id").
-		Where("projects.company_id = ?", companyID).
-		Count(&totalSubmissions).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count submissions"})
-		return
-	}
+	// --- Jobs section: posted, applications ---
+	var postedJobs int64
+	DB.Model(&models.JobListing{}).Where("company_id = ?", companyID).Count(&postedJobs)
 
-	// Return the dashboard stats
+	var jobApplications int64
+	DB.Table("job_applications").
+		Joins("JOIN job_listings ON job_applications.job_listing_id = job_listings.id").
+		Where("job_listings.company_id = ?", companyID).
+		Count(&jobApplications)
+
 	c.JSON(http.StatusOK, gin.H{
-		"posted_projects":   postedProjects,
-		"total_applicants":  totalApplicants,
-		"total_submissions": totalSubmissions,
+		"projects": gin.H{
+			"posted":       postedProjects,
+			"applications": projectApplications,
+		},
+		"jobs": gin.H{
+			"posted":       postedJobs,
+			"applications": jobApplications,
+		},
 	})
 }
 

@@ -16,6 +16,7 @@ import PostJob from './PostJob';
 import CompanyProjects from './CompanyProjects';
 import CompanyApplications from './CompanyApplications';
 import CompanyJobManagement from './CompanyJobManagement';
+import Jobs from './Jobs';
 import Submissions from './Submissions';
 import Guides from './Guides';
 import GuidesTest from './GuidesTest';
@@ -48,6 +49,7 @@ function AppContent() {
           <Route path="/company/projects" element={<CompanyProjects />} />
           <Route path="/company/applications" element={<CompanyApplications />} />
           <Route path="/company/jobs" element={<CompanyJobManagement />} />
+          <Route path="/jobs" element={<Jobs />} />
           <Route path="/submissions" element={<Submissions />} />
           <Route path="/guides" element={<GuidesSimple />} />
           <Route path="/guides-full" element={<Guides />} />

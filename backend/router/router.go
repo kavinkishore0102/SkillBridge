@@ -97,6 +97,9 @@ func SetupRouter() *gin.Engine {
 		// 💼 Job listing routes (Company side)
 		authorized.POST("/jobs", middleware.AuthorizeRoles("company"), controller.CreateJobListing)
 		authorized.GET("/company/jobs", middleware.AuthorizeRoles("company"), controller.GetCompanyJobListings)
+		// 🧑‍🎓 Student apply to job + my job applications
+		authorized.POST("/jobs/:id/apply", middleware.AuthorizeRoles("student"), controller.ApplyToJob)
+		authorized.GET("/my-job-applications", middleware.AuthorizeRoles("student"), controller.GetMyJobApplications)
 		authorized.PUT("/jobs/:id", middleware.AuthorizeRoles("company"), controller.UpdateJobListing)
 		authorized.DELETE("/jobs/:id", middleware.AuthorizeRoles("company"), controller.DeleteJobListing)
 		authorized.GET("/jobs/:id/applications", middleware.AuthorizeRoles("company"), controller.GetJobApplications)

@@ -132,7 +132,7 @@ const CompanyJobManagement = () => {
       title: job.title,
       description: job.description,
       location: job.location,
-      duration: job.duration,
+      experience: typeof job.experience === 'number' ? job.experience : 0,
       stipend: job.stipend,
       is_active: job.is_active
     });
@@ -148,10 +148,10 @@ const CompanyJobManagement = () => {
 
   const handleSaveEdit = async (jobId) => {
     try {
-      // Convert stipend to number if it exists
       const submitData = {
         ...editForm,
-        stipend: editForm.stipend ? parseInt(editForm.stipend, 10) : 0
+        stipend: editForm.stipend ? parseInt(editForm.stipend, 10) : 0,
+        experience: typeof editForm.experience === 'number' ? editForm.experience : parseInt(editForm.experience, 10) || 0
       };
       
       await axios.put(`http://localhost:8080/api/jobs/${jobId}`, submitData, {
@@ -231,9 +231,12 @@ const CompanyJobManagement = () => {
 
                   <div className="job-meta">
                     <span className="meta-item">📍 {job.location}</span>
-                    <span className="meta-item">⏱ {job.duration}</span>
+                    <span className="meta-item">📋 {job.experience ?? 0} {job.experience === 1 ? 'year' : 'years'} exp</span>
                     {job.stipend > 0 && (
-                      <span className="meta-item">💰 {job.currency} {job.stipend.toLocaleString()}</span>
+                      <span className="meta-item">
+                        💰 {job.stipend.toLocaleString()}{' '}
+                        {job.currency === 'Monthly' ? '/ month' : 'LPA'}
+                      </span>
                     )}
                   </div>
 
@@ -271,14 +274,16 @@ const CompanyJobManagement = () => {
                         className="form-control"
                         placeholder="Location"
                       />
-                      <input
-                        type="text"
-                        name="duration"
-                        value={editForm.duration}
-                        onChange={handleEditFormChange}
+                      <label className="form-label-inline">Experience (years)</label>
+                      <select
                         className="form-control"
-                        placeholder="Duration"
-                      />
+                        value={editForm.experience ?? 0}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, experience: parseInt(e.target.value, 10) }))}
+                      >
+                        <option value={0}>0 years</option>
+                        <option value={1}>1 year</option>
+                        <option value={2}>2 years</option>
+                      </select>
                       <input
                         type="number"
                         name="stipend"

@@ -13,7 +13,6 @@ function PostProject() {
     budget: '',
     deadline: '',
     difficulty: 'intermediate',
-    duration: '',
     team_size: '',
     location: 'remote'
   });
