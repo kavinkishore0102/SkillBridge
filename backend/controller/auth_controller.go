@@ -6,11 +6,12 @@ import (
 	"SkillBridge/utils"
 	"crypto/rand"
 	"encoding/base64"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"gorm.io/gorm"
-	"net/http"
-	"time"
 )
 
 var DB *gorm.DB
@@ -50,7 +51,7 @@ func SignUp(c *gin.Context) {
 	// Generate token with role claim (FIXED)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
-		"role":    user.Role, // ADDED ROLE
+		"role":    user.Role,                                 // ADDED ROLE
 		"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 days
 	})
 
@@ -122,21 +123,22 @@ func GetProfile(c *gin.Context) {
 
 	// successfully profile got.
 	c.JSON(http.StatusOK, gin.H{
-		"id":           user.ID,
-		"name":         user.Name,
-		"email":        user.Email,
-		"role":         user.Role,
-		"picture":      user.Picture,
-		"bio":          user.Bio,
-		"github_url":   user.GithubURL,
-		"linkedin":     user.LinkedIn,
-		"phone":        user.Phone,
-		"university":   user.University,
-		"major":        user.Major,
-		"year":         user.Year,
-		"company_name": user.CompanyName,
-		"position":     user.Position,
+		"id":            user.ID,
+		"name":          user.Name,
+		"email":         user.Email,
+		"role":          user.Role,
+		"picture":       user.Picture,
+		"bio":           user.Bio,
+		"github_url":    user.GithubURL,
+		"linkedin":      user.LinkedIn,
+		"phone":         user.Phone,
+		"university":    user.University,
+		"major":         user.Major,
+		"year":          user.Year,
+		"company_name":  user.CompanyName,
+		"position":      user.Position,
 		"portfolio_url": user.PortfolioURL,
+		"skills":        user.Skills,
 	})
 }
 
@@ -161,6 +163,7 @@ func UpdateProfile(c *gin.Context) {
 		CompanyName  string `json:"company_name"`
 		Position     string `json:"position"`
 		PortfolioURL string `json:"portfolio_url"`
+		Skills       string `json:"skills"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
@@ -176,8 +179,8 @@ func UpdateProfile(c *gin.Context) {
 
 	// Update user profile
 	updateData := models.User{
-		Name:         input.Name, 
-		Email:        input.Email, 
+		Name:         input.Name,
+		Email:        input.Email,
 		Role:         input.Role,
 		Bio:          input.Bio,
 		GithubURL:    input.GithubURL,
@@ -189,6 +192,7 @@ func UpdateProfile(c *gin.Context) {
 		CompanyName:  input.CompanyName,
 		Position:     input.Position,
 		PortfolioURL: input.PortfolioURL,
+		Skills:       input.Skills,
 	}
 
 	if err := DB.Model(&models.User{}).Where("id = ?", userID).Updates(updateData).Error; err != nil {
@@ -207,21 +211,22 @@ func UpdateProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Profile updated successfully",
 		"user": gin.H{
-			"id":           updatedUser.ID,
-			"name":         updatedUser.Name,
-			"email":        updatedUser.Email,
-			"role":         updatedUser.Role,
-			"picture":      updatedUser.Picture,
-			"bio":          updatedUser.Bio,
-			"github_url":   updatedUser.GithubURL,
-			"linkedin":     updatedUser.LinkedIn,
-			"phone":        updatedUser.Phone,
-			"university":   updatedUser.University,
-			"major":        updatedUser.Major,
-			"year":         updatedUser.Year,
-			"company_name": updatedUser.CompanyName,
-			"position":     updatedUser.Position,
+			"id":            updatedUser.ID,
+			"name":          updatedUser.Name,
+			"email":         updatedUser.Email,
+			"role":          updatedUser.Role,
+			"picture":       updatedUser.Picture,
+			"bio":           updatedUser.Bio,
+			"github_url":    updatedUser.GithubURL,
+			"linkedin":      updatedUser.LinkedIn,
+			"phone":         updatedUser.Phone,
+			"university":    updatedUser.University,
+			"major":         updatedUser.Major,
+			"year":          updatedUser.Year,
+			"company_name":  updatedUser.CompanyName,
+			"position":      updatedUser.Position,
 			"portfolio_url": updatedUser.PortfolioURL,
+			"skills":        updatedUser.Skills,
 		},
 	})
 }
@@ -258,8 +263,8 @@ func SetGithubToken(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "GitHub token saved successfully",
-		"github_user": userInfo["login"], // Return GitHub username for confirmation
+		"message":          "GitHub token saved successfully",
+		"github_user":      userInfo["login"], // Return GitHub username for confirmation
 		"can_create_repos": true,
 	})
 }
@@ -279,7 +284,7 @@ func RemoveGithubToken(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "GitHub token removed successfully",
+		"message":          "GitHub token removed successfully",
 		"can_create_repos": false,
 	})
 }
@@ -311,7 +316,7 @@ func GoogleOAuth(c *gin.Context) {
 			existingUser.Picture = userInfo.Picture
 			DB.Save(&existingUser)
 		}
-		
+
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"user_id": existingUser.ID,
 			"role":    existingUser.Role,
@@ -411,7 +416,7 @@ func parseGoogleJWT(tokenString string) (*GoogleUserInfo, error) {
 		name, _ := claims["name"].(string)
 		picture, _ := claims["picture"].(string)
 		sub, _ := claims["sub"].(string)
-		
+
 		userInfo := &GoogleUserInfo{
 			Email:   email,
 			Name:    name,

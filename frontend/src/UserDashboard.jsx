@@ -125,17 +125,7 @@ function Dashboard() {
             let dashboardResponse;
             switch (userData.role) {
               case 'student':
-                // For students, also fetch applications to ensure consistency
-                const [studentDashboard, applicationsResponse] = await Promise.all([
-                  dashboardAPI.getStudentDashboard(token),
-                  dashboardAPI.getMyApplications(token)
-                ]);
-                
-                // Override the applied_projects count with actual applications count
-                dashboardResponse = {
-                  ...studentDashboard,
-                  applied_projects: applicationsResponse?.applications?.length || 0
-                };
+                dashboardResponse = await dashboardAPI.getStudentDashboard(token);
                 break;
               case 'company':
                 dashboardResponse = await dashboardAPI.getCompanyDashboard(token);
@@ -342,97 +332,145 @@ function Dashboard() {
         </div>
 
         {/* Dynamic Role-based Dashboard */}
-        {(() => {
-          const config = getDashboardConfig(user.role, dashboardData, user, theme);
+        {user.role === 'student' && (
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ color: theme.colors.text, marginBottom: '16px' }}>Student Dashboard</h3>
+            {dashboardData ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                {/* Projects section */}
+                <div style={{ backgroundColor: theme.colors.card, padding: '20px', borderRadius: '8px', border: `1px solid ${theme.colors.border}`, boxShadow: theme.shadows?.card }}>
+                  <h4 style={{ margin: '0 0 16px 0', color: theme.colors.text, fontSize: '16px' }}>Projects</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                    <div style={{ padding: '12px', backgroundColor: theme.colors.background, borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: theme.colors.primary }}>{dashboardData.projects?.applications ?? 0}</div>
+                      <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>Applications</div>
+                    </div>
+                    <div style={{ padding: '12px', backgroundColor: theme.colors.background, borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: theme.colors.success }}>{dashboardData.projects?.accepted ?? 0}</div>
+                      <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>Accepted</div>
+                    </div>
+                    <div style={{ padding: '12px', backgroundColor: theme.colors.background, borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: theme.colors.danger }}>{dashboardData.projects?.rejected ?? 0}</div>
+                      <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>Rejected</div>
+                    </div>
+                  </div>
+                </div>
+                {/* Jobs section */}
+                <div style={{ backgroundColor: theme.colors.card, padding: '20px', borderRadius: '8px', border: `1px solid ${theme.colors.border}`, boxShadow: theme.shadows?.card }}>
+                  <h4 style={{ margin: '0 0 16px 0', color: theme.colors.text, fontSize: '16px' }}>Jobs</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                    <div style={{ padding: '12px', backgroundColor: theme.colors.background, borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: theme.colors.primary }}>{dashboardData.jobs?.applications ?? 0}</div>
+                      <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>Applications</div>
+                    </div>
+                    <div style={{ padding: '12px', backgroundColor: theme.colors.background, borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: theme.colors.success }}>{dashboardData.jobs?.accepted ?? 0}</div>
+                      <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>Accepted</div>
+                    </div>
+                    <div style={{ padding: '12px', backgroundColor: theme.colors.background, borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: theme.colors.danger }}>{dashboardData.jobs?.rejected ?? 0}</div>
+                      <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>Rejected</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p style={{ color: theme.colors.textSecondary }}>Loading dashboard data...</p>
+            )}
+            {/* Profile Links - Student */}
+            {dashboardData && (
+              <div style={{ marginTop: '20px', backgroundColor: theme.colors.card, padding: '15px', borderRadius: '8px', border: `1px solid ${theme.colors.border}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h4 style={{ margin: 0, color: theme.colors.text }}>Profile Links</h4>
+                  <button onClick={handleUpdateProfile} style={{ backgroundColor: theme.colors.primary, color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Update Profile</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {[{ label: 'LinkedIn', url: user?.linkedin }, { label: 'GitHub', url: user?.github_url }, { label: 'Portfolio', url: user?.portfolio_url }].map((link, i) => (
+                    <div key={i}>{link.url ? <a href={link.url.startsWith('http') ? link.url : `https://${link.url}`} target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.primary, textDecoration: 'none', fontSize: '14px' }}>{link.label}</a> : <span style={{ color: theme.colors.textSecondary, fontSize: '14px', fontStyle: 'italic' }}>{link.label} not set</span>}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {user.role === 'company' && (
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ color: theme.colors.text, marginBottom: '16px' }}>Company Dashboard</h3>
+            {dashboardData ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                {/* Projects section */}
+                <div style={{ backgroundColor: theme.colors.card, padding: '20px', borderRadius: '8px', border: `1px solid ${theme.colors.border}`, boxShadow: theme.shadows?.card }}>
+                  <h4 style={{ margin: '0 0 16px 0', color: theme.colors.text, fontSize: '16px' }}>Projects</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div style={{ padding: '12px', backgroundColor: theme.colors.background, borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: theme.colors.success }}>{dashboardData.projects?.posted ?? 0}</div>
+                      <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>Posted</div>
+                    </div>
+                    <div style={{ padding: '12px', backgroundColor: theme.colors.background, borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: theme.colors.primary }}>{dashboardData.projects?.applications ?? 0}</div>
+                      <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>Applications</div>
+                    </div>
+                  </div>
+                </div>
+                {/* Jobs section */}
+                <div style={{ backgroundColor: theme.colors.card, padding: '20px', borderRadius: '8px', border: `1px solid ${theme.colors.border}`, boxShadow: theme.shadows?.card }}>
+                  <h4 style={{ margin: '0 0 16px 0', color: theme.colors.text, fontSize: '16px' }}>Jobs</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div style={{ padding: '12px', backgroundColor: theme.colors.background, borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: theme.colors.success }}>{dashboardData.jobs?.posted ?? 0}</div>
+                      <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>Posted</div>
+                    </div>
+                    <div style={{ padding: '12px', backgroundColor: theme.colors.background, borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 'bold', color: theme.colors.primary }}>{dashboardData.jobs?.applications ?? 0}</div>
+                      <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>Applications</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p style={{ color: theme.colors.textSecondary }}>Loading dashboard data...</p>
+            )}
+            {/* Profile Links - Company */}
+            {dashboardData && (
+              <div style={{ marginTop: '20px', backgroundColor: theme.colors.card, padding: '15px', borderRadius: '8px', border: `1px solid ${theme.colors.border}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h4 style={{ margin: 0, color: theme.colors.text }}>Profile Links</h4>
+                  <button onClick={handleUpdateProfile} style={{ backgroundColor: theme.colors.primary, color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Update Profile</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {[{ label: 'Company Website', url: user?.company_url }, { label: 'LinkedIn', url: user?.linkedin }, { label: 'Careers Page', url: user?.careers_url }].map((link, i) => (
+                    <div key={i}>{link.url ? <a href={link.url.startsWith('http') ? link.url : `https://${link.url}`} target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.primary, textDecoration: 'none', fontSize: '14px' }}>{link.label}</a> : <span style={{ color: theme.colors.textSecondary, fontSize: '14px', fontStyle: 'italic' }}>{link.label} not set</span>}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {user.role === 'guide' && (() => {
+          const config = getDashboardConfig('guide', dashboardData, user, theme);
           return (
-            <div style={{ 
-              backgroundColor: config.backgroundColor,
-              padding: '20px',
-              borderRadius: '8px',
-              marginBottom: '20px',
-              border: `1px solid ${theme.colors.border}`
-            }}>
+            <div style={{ backgroundColor: config.backgroundColor, padding: '20px', borderRadius: '8px', marginBottom: '20px', border: `1px solid ${theme.colors.border}` }}>
               <h3 style={{ color: theme.colors.text }}>{config.title}</h3>
               {dashboardData ? (
                 <div>
-                  {/* Stats Grid */}
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                    gap: '20px', 
-                    marginBottom: '20px' 
-                  }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
                     {config.stats.map((stat, index) => (
-                      <div key={index} style={{ 
-                        backgroundColor: theme.colors.card, 
-                        padding: '15px', 
-                        borderRadius: '8px', 
-                        boxShadow: theme.shadows.card,
-                        border: `1px solid ${theme.colors.border}`
-                      }}>
-                        <h4 style={{ margin: '0 0 10px 0', color: stat.color }}>
-                          {stat.label}
-                        </h4>
-                        <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: theme.colors.text }}>
-                          {stat.value}
-                        </p>
+                      <div key={index} style={{ backgroundColor: theme.colors.card, padding: '15px', borderRadius: '8px', boxShadow: theme.shadows.card, border: `1px solid ${theme.colors.border}` }}>
+                        <h4 style={{ margin: '0 0 10px 0', color: stat.color }}>{stat.label}</h4>
+                        <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: theme.colors.text }}>{stat.value}</p>
                       </div>
                     ))}
                   </div>
-                  
-                  {/* Profile Links */}
-                  <div style={{ 
-                    backgroundColor: theme.colors.card, 
-                    padding: '15px', 
-                    borderRadius: '8px', 
-                    boxShadow: theme.shadows.card,
-                    border: `1px solid ${theme.colors.border}`
-                  }}>
+                  <div style={{ backgroundColor: theme.colors.card, padding: '15px', borderRadius: '8px', boxShadow: theme.shadows.card, border: `1px solid ${theme.colors.border}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                       <h4 style={{ margin: 0, color: theme.colors.text }}>Profile Links</h4>
-                      <button 
-                        onClick={handleUpdateProfile}
-                        style={{
-                          backgroundColor: theme.colors.primary,
-                          color: 'white',
-                          border: 'none',
-                          padding: '8px 12px',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          transition: 'all 0.3s ease'
-                        }}
-                      >
-                        Update Profile
-                      </button>
+                      <button onClick={handleUpdateProfile} style={{ backgroundColor: theme.colors.primary, color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Update Profile</button>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {config.profileLinks.map((link, index) => (
-                        <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ fontSize: '16px' }}>{link.icon}</span>
-                          {link.url ? (
-                            <a 
-                              href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ 
-                                color: theme.colors.primary,
-                                textDecoration: 'none',
-                                fontSize: '14px'
-                              }}
-                            >
-                              {link.label}
-                            </a>
-                          ) : (
-                            <span style={{ 
-                              color: theme.colors.textSecondary, 
-                              fontSize: '14px',
-                              fontStyle: 'italic'
-                            }}>
-                              {link.label} not set
-                            </span>
-                          )}
-                        </div>
+                        <div key={index}>{link.url ? <a href={link.url.startsWith('http') ? link.url : `https://${link.url}`} target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.primary, textDecoration: 'none', fontSize: '14px' }}>{link.label}</a> : <span style={{ color: theme.colors.textSecondary, fontSize: '14px', fontStyle: 'italic' }}>{link.label} not set</span>}</div>
                       ))}
                     </div>
                   </div>
@@ -490,6 +528,29 @@ function Dashboard() {
                   onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
                 >
                   🔍 Browse Projects
+                </button>
+
+                <button
+                  onClick={() => navigate('/jobs')}
+                  style={{
+                    padding: '15px 20px',
+                    backgroundColor: theme.colors.tertiary || '#6b5b95',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  💼 Apply for Jobs
                 </button>
                 
                 <button

@@ -5,10 +5,10 @@ const API_BASE_URL = 'http://localhost:8080/api';
 const isValidToken = (token) => {
   if (!token || typeof token !== 'string') return false;
   if (token === 'google-oauth-token') return false;
-  
+
   const parts = token.split('.');
   if (parts.length !== 3) return false;
-  
+
   try {
     const payload = JSON.parse(atob(parts[1]));
     const currentTime = Math.floor(Date.now() / 1000);
@@ -24,13 +24,13 @@ const apiCall = async (endpoint, method = 'GET', data = null, token = null) => {
   console.log('Endpoint:', endpoint);
   console.log('Method:', method);
   console.log('Data:', data);
-  
+
   // Validate token if provided (but don't block the request - let backend validate)
   if (token && !isValidToken(token)) {
     console.warn('Token validation failed on frontend, but sending to backend anyway');
     // Don't logout here - let the backend decide if token is invalid
   }
-  
+
   console.log('Token valid:', token ? (isValidToken(token) ? 'Yes' : 'No (but sending anyway)') : 'No token');
 
   const headers = {
@@ -61,7 +61,7 @@ const apiCall = async (endpoint, method = 'GET', data = null, token = null) => {
     console.log('Fetch response received:', response);
     console.log('Response status:', response.status);
     console.log('Response headers:', response.headers);
-    
+
     console.log('Parsing response as JSON...');
     let result;
     try {
@@ -76,14 +76,14 @@ const apiCall = async (endpoint, method = 'GET', data = null, token = null) => {
     if (!response.ok) {
       console.error('Response not OK:', response.status, result);
       const errorMessage = result.error || result.message || `API request failed with status ${response.status}`;
-      
+
       // If 401, clear token and redirect
       if (response.status === 401) {
         console.error('401 Unauthorized - clearing token');
         utils.logout();
         throw new Error('Session expired. Please login again.');
       }
-      
+
       throw new Error(errorMessage);
     }
 
@@ -142,8 +142,8 @@ export const authAPI = {
 // Project API calls
 export const projectAPI = {
   // Get all projects
-  getAllProjects: async () => {
-    return await apiCall('/projects', 'GET');
+  getAllProjects: async (token = null) => {
+    return await apiCall('/projects', 'GET', null, token);
   },
 
   // Get project by ID

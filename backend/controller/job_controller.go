@@ -58,7 +58,7 @@ func CreateJobListing(c *gin.Context) {
 		Location:            req.Location,
 		Stipend:             req.Stipend,
 		Currency:            req.Currency,
-		Duration:            req.Duration,
+		Experience:          req.Experience,
 		Requirements:        json.RawMessage(requirementsJSON),
 		Skills:              json.RawMessage(skillsJSON),
 		ApplicationDeadline: deadline,
@@ -158,9 +158,7 @@ func UpdateJobListing(c *gin.Context) {
 	if req.Stipend > 0 {
 		updates["stipend"] = req.Stipend
 	}
-	if req.Duration != "" {
-		updates["duration"] = req.Duration
-	}
+	updates["experience"] = req.Experience
 	if len(req.Requirements) > 0 {
 		reqJSON, _ := json.Marshal(req.Requirements)
 		updates["requirements"] = json.RawMessage(reqJSON)
@@ -394,6 +392,77 @@ func GetApplicationDetail(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, application)
+}
+
+// ApplyToJob - Student applies to a job listing
+func ApplyToJob(c *gin.Context) {
+	jobIDStr := c.Param("id")
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	studentID := userID.(uint)
+
+	var req models.ApplyToJobRequest
+	c.BindJSON(&req) // optional body
+
+	var job models.JobListing
+	if result := db.Where("id = ? AND is_active = ?", jobIDStr, true).First(&job); result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Job not found or no longer active"})
+		return
+	}
+	if job.ApplicationDeadline.Before(time.Now()) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Application deadline has passed"})
+		return
+	}
+
+	var existing models.JobApplication
+	if result := db.Where("job_listing_id = ? AND user_id = ?", job.ID, studentID).First(&existing); result.Error == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "You have already applied to this job"})
+		return
+	}
+
+	application := models.JobApplication{
+		JobListingID: job.ID,
+		UserID:       studentID,
+		Status:       "Applied",
+		CoverLetter:  req.CoverLetter,
+		Resume:       req.Resume,
+		AppliedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+	if result := db.Create(&application); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit application"})
+		return
+	}
+
+	// Increment applicant count on job listing
+	db.Model(&models.JobListing{}).Where("id = ?", job.ID).Update("applicant_count", gorm.Expr("applicant_count + ?", 1))
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Application submitted successfully",
+		"application_id": application.ID,
+	})
+}
+
+// GetMyJobApplications - Get job IDs the student has applied to
+func GetMyJobApplications(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	var applications []models.JobApplication
+	if result := db.Where("user_id = ?", userID.(uint)).Find(&applications); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch applications"})
+		return
+	}
+	jobIDs := make([]uint, 0, len(applications))
+	for _, app := range applications {
+		jobIDs = append(jobIDs, app.JobListingID)
+	}
+	c.JSON(http.StatusOK, gin.H{"job_ids": jobIDs})
 }
 
 // GetAllJobListings - Get all job listings (public endpoint with filtering)

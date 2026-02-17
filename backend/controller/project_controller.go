@@ -1,17 +1,21 @@
 package controller
 
 import (
+	"SkillBridge/middleware"
 	"SkillBridge/models"
 	"SkillBridge/utils"
 	"fmt"
 	"io"
-	"strings"
-	"time"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
+	"gorm.io/gorm"
 )
 
 func PostProject(c *gin.Context) {
@@ -42,7 +46,7 @@ func PostProject(c *gin.Context) {
 // SubmitGithubRepo allows students to submit their GitHub repository URL for an application
 func SubmitGithubRepo(c *gin.Context) {
 	fmt.Println("=== SubmitGithubRepo called ===")
-	
+
 	studentID := c.GetUint("userID")
 	role := c.GetString("role")
 	if role != "student" {
@@ -58,29 +62,29 @@ func SubmitGithubRepo(c *gin.Context) {
 	// Print raw request body for debugging
 	body, _ := c.GetRawData()
 	fmt.Printf("Raw request body: %s\n", string(body))
-	
+
 	// Reset the body so it can be read again by ShouldBindJSON
 	c.Request.Body = io.NopCloser(strings.NewReader(string(body)))
 
 	fmt.Printf("Attempting to bind JSON to struct: %+v\n", input)
-	
+
 	if err := c.ShouldBindJSON(&input); err != nil {
 		fmt.Printf("JSON binding error: %v\n", err)
-		
+
 		// Provide more specific error messages
 		if strings.Contains(err.Error(), "application_id") {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "Missing or invalid application_id. Please ensure you have selected a valid application.",
+				"error":   "Missing or invalid application_id. Please ensure you have selected a valid application.",
 				"details": err.Error(),
 			})
 		} else if strings.Contains(err.Error(), "github_repo_url") {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "Missing or invalid github_repo_url. Please provide a valid GitHub repository URL.",
+				"error":   "Missing or invalid github_repo_url. Please provide a valid GitHub repository URL.",
 				"details": err.Error(),
 			})
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "Invalid request format. Please check your input.",
+				"error":   "Invalid request format. Please check your input.",
 				"details": err.Error(),
 			})
 		}
@@ -115,24 +119,100 @@ func SubmitGithubRepo(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "GitHub repository submitted successfully",
-		"application_id": application.ID,
+		"message":         "GitHub repository submitted successfully",
+		"application_id":  application.ID,
 		"github_repo_url": input.GithubRepoURL,
 	})
 }
 
 func GetAllProjects(c *gin.Context) {
+	// Get current user ID from context or token
+	var userID uint
+	var userSkills []string
+
+	// Check if userID is already in context (unlikely for public route but good practice)
+	if id, exists := c.Get("userID"); exists {
+		userID = id.(uint)
+	} else {
+		// Check for Authorization header
+		authHeader := c.GetHeader("Authorization")
+		if authHeader != "" {
+			tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
+			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				}
+				return middleware.JWT_SECRET, nil
+			})
+
+			if err == nil && token.Valid {
+				if claims, ok := token.Claims.(jwt.MapClaims); ok {
+					if idFloat, ok := claims["user_id"].(float64); ok {
+						userID = uint(idFloat)
+					}
+				}
+			}
+		}
+	}
+
+	if userID != 0 {
+		var user models.User
+		if err := DB.First(&user, userID).Error; err == nil && user.Skills != "" {
+			// Split and clean user skills
+			rawSkills := strings.Split(user.Skills, ",")
+			for _, s := range rawSkills {
+				cleaned := strings.TrimSpace(strings.ToLower(s))
+				if cleaned != "" {
+					userSkills = append(userSkills, cleaned)
+				}
+			}
+		}
+	}
+
 	var projects []models.Project
 	if err := DB.Find(&projects).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "project not found"})
 		return
 	}
+
+	// If user has skills, sort projects based on matching skills
+	if len(userSkills) > 0 {
+		log.Printf("User Skills: %v", userSkills)
+
+		// Create a map to cache project scores
+		projectScores := make(map[uint]int)
+
+		for _, project := range projects {
+			score := 0
+			if project.Skills != "" {
+				projectSkills := strings.Split(project.Skills, ",")
+				for _, ps := range projectSkills {
+					projectSkill := strings.TrimSpace(strings.ToLower(ps))
+					for _, us := range userSkills {
+						if projectSkill == us {
+							score++
+						}
+					}
+				}
+			}
+			projectScores[project.ID] = score
+			if score > 0 {
+				log.Printf("Project %d (%s) Score: %d", project.ID, project.Title, score)
+			}
+		}
+
+		// Sort projects: higher score first
+		sort.SliceStable(projects, func(i, j int) bool {
+			return projectScores[projects[i].ID] > projectScores[projects[j].ID]
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{"projects": projects})
 }
 
 func GetProjectById(c *gin.Context) {
 	projectID := c.Param("id")
-	
+
 	var project models.Project
 	if err := DB.First(&project, projectID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -142,7 +222,7 @@ func GetProjectById(c *gin.Context) {
 		}
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{"data": project})
 }
 
@@ -180,9 +260,9 @@ func ApplyToProject(c *gin.Context) {
 	application := models.Application{
 		ProjectID:     input.ProjectID,
 		StudentID:     studentID,
-		Status:        "pending", // Set default status
+		Status:        "pending",     // Set default status
 		ProjectTitle:  project.Title, // Save project title directly
-		GithubRepoURL: "", // Empty initially, can be submitted later
+		GithubRepoURL: "",            // Empty initially, can be submitted later
 	}
 
 	if err := DB.Create(&application).Error; err != nil {
@@ -191,7 +271,7 @@ func ApplyToProject(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Project applied successfully",
+		"message":     "Project applied successfully",
 		"application": application,
 	})
 }
@@ -201,12 +281,12 @@ func extractGithubUsername(githubURL string) string {
 	if githubURL == "" {
 		return ""
 	}
-	
+
 	// Handle different GitHub URL formats
 	// https://github.com/username
 	// https://www.github.com/username
 	// github.com/username
-	
+
 	parts := strings.Split(githubURL, "/")
 	if len(parts) >= 2 {
 		// Get the last non-empty part
@@ -216,7 +296,7 @@ func extractGithubUsername(githubURL string) string {
 			}
 		}
 	}
-	
+
 	return ""
 }
 
@@ -291,12 +371,12 @@ func SubmitProject(c *gin.Context) {
 	submission := models.Submission{
 		ProjectID:   uint(projectID),
 		StudentID:   studentID,
-		GithubLink:  githubURL,      // For backward compatibility
-		GithubURL:   githubURL,      // New field
-		DemoURL:     input.DemoURL,  // Demo/Live URL
-		Notes:       description,    // For backward compatibility
-		Description: description,    // New field
-		Status:      "submitted",    // Set initial status
+		GithubLink:  githubURL,     // For backward compatibility
+		GithubURL:   githubURL,     // New field
+		DemoURL:     input.DemoURL, // Demo/Live URL
+		Notes:       description,   // For backward compatibility
+		Description: description,   // New field
+		Status:      "submitted",   // Set initial status
 		SubmittedAt: time.Now(),
 	}
 

@@ -19,7 +19,7 @@ type JobListing struct {
 	Location            string          `json:"location"`
 	Stipend             int             `json:"stipend"`                         // In rupees, 0 for unpaid
 	Currency            string          `gorm:"default:INR" json:"currency"`
-	Duration            string          `json:"duration"`                        // "3 months", "6 months"
+	Experience          int             `json:"experience"`                      // Years required: 0, 1, 2
 	Requirements        json.RawMessage `gorm:"type:json" json:"requirements"`   // JSON array
 	Skills              json.RawMessage `gorm:"type:json" json:"skills"`         // JSON array
 	ApplicantCount      int             `gorm:"default:0" json:"applicant_count"`
@@ -62,7 +62,8 @@ type CreateJobListingRequest struct {
 	Location            string   `json:"location" binding:"required"`
 	Stipend             int      `json:"stipend"`
 	Currency            string   `json:"currency"`
-	Duration            string   `json:"duration" binding:"required"`
+	Experience          int      `json:"experience"` // 0, 1, or 2 years
+	Duration            string   `json:"duration"`    // optional, deprecated - kept so older clients don't get 400
 	Requirements        []string `json:"requirements"`
 	Skills              []string `json:"skills"`
 	ApplicationDeadline string   `json:"application_deadline" binding:"required"`
@@ -75,11 +76,16 @@ type UpdateJobListingRequest struct {
 	Domain              string   `json:"domain"`
 	Location            string   `json:"location"`
 	Stipend             int      `json:"stipend"`
-	Duration            string   `json:"duration"`
+	Experience          int      `json:"experience"`
 	Requirements        []string `json:"requirements"`
 	Skills              []string `json:"skills"`
 	ApplicationDeadline string   `json:"application_deadline"`
 	IsActive            bool     `json:"is_active"`
+}
+
+type ApplyToJobRequest struct {
+	CoverLetter string `json:"cover_letter"`
+	Resume      string `json:"resume"`
 }
 
 type UpdateApplicationStatusRequest struct {

@@ -183,6 +183,28 @@ function Profile() {
                       <strong>Year:</strong> {user.year}
                     </p>
                   )}
+                  {user.skills && (
+                    <div style={{ marginTop: '10px' }}>
+                      <p style={{ color: theme.colors.textSecondary, margin: '0 0 5px 0' }}>
+                        <strong>Skills:</strong>
+                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                        {user.skills.split(',').map((skill, index) => (
+                          <span key={index} style={{
+                            backgroundColor: theme.colors.primary + '20',
+                            color: theme.colors.primary,
+                            padding: '4px 8px',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            border: `1px solid ${theme.colors.primary}40`
+                          }}>
+                            {skill.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

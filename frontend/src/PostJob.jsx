@@ -11,8 +11,8 @@ const PostJob = () => {
     domain: '',
     location: '',
     stipend: '',
-    currency: 'INR',
-    duration: '',
+    salary_type: 'LPA', // 'LPA' (Lakhs Per Annum) or 'Monthly'
+    experience: 0, // 0, 1, 2 years
     requirements: [],
     skills: [],
     application_deadline: '',
@@ -38,7 +38,6 @@ const PostJob = () => {
   ];
 
   const categories = ['Internship', 'Full-time', 'Part-time'];
-  const durations = ['1 month', '2 months', '3 months', '6 months', '1 year'];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -89,8 +88,7 @@ const PostJob = () => {
     if (!formData.description.trim()) return 'Job description is required';
     if (!formData.domain) return 'Domain is required';
     if (!formData.location.trim()) return 'Location is required';
-    if (!formData.duration) return 'Duration is required';
-    if (!formData.application_deadline) return 'Application deadline is required';
+    if (formData.application_deadline === '') return 'Application deadline is required';
     if (new Date(formData.application_deadline) < new Date()) {
       return 'Application deadline must be in the future';
     }
@@ -133,10 +131,20 @@ const PostJob = () => {
         console.log('Could not decode token:', e.message);
       }
       
-      // Convert stipend to number
+      // Build payload. Include duration for backward compatibility with backend until it is restarted with updated code.
       const submitData = {
-        ...formData,
-        stipend: formData.stipend ? parseInt(formData.stipend, 10) : 0
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        category: formData.category,
+        domain: formData.domain,
+        location: formData.location.trim(),
+        stipend: formData.stipend ? parseInt(formData.stipend, 10) : 0,
+        currency: formData.salary_type || 'LPA',
+        experience: typeof formData.experience === 'number' ? formData.experience : parseInt(formData.experience, 10) || 0,
+        duration: 'Not specified',
+        requirements: Array.isArray(formData.requirements) ? formData.requirements : [],
+        skills: Array.isArray(formData.skills) ? formData.skills : [],
+        application_deadline: formData.application_deadline
       };
       
       console.log('Submitting job data:', submitData);
@@ -158,8 +166,8 @@ const PostJob = () => {
           domain: '',
           location: '',
           stipend: '',
-          currency: 'INR',
-          duration: '',
+          salary_type: 'LPA',
+          experience: 0,
           requirements: [],
           skills: [],
           application_deadline: '',
@@ -172,7 +180,14 @@ const PostJob = () => {
       }
     } catch (error) {
       console.error('Error posting job:', error);
-      setErrorMessage(error.response?.data?.error || 'Failed to post job listing. Please try again.');
+      const data = error.response?.data;
+      if (data && typeof data === 'object') {
+        console.error('Server response:', JSON.stringify(data, null, 2));
+      }
+      const errMsg = (data && (data.error || data.message))
+        || (typeof data === 'string' ? data : null)
+        || `Failed to post job (${error.response?.status || 'network error'}). Please try again.`;
+      setErrorMessage(errMsg);
     } finally {
       setLoading(false);
     }
@@ -256,9 +271,9 @@ const PostJob = () => {
             </div>
           </div>
 
-          {/* Location & Duration */}
+          {/* Location & Experience */}
           <div className="form-section">
-            <h2>Location & Duration</h2>
+            <h2>Location & Experience</h2>
             
             <div className="form-row">
               <div className="form-group">
@@ -275,19 +290,25 @@ const PostJob = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="duration">Duration *</label>
-                <select
-                  id="duration"
-                  name="duration"
-                  value={formData.duration}
-                  onChange={handleInputChange}
+                <label htmlFor="experience">Experience (years) *</label>
+                <input
+                  type="number"
+                  id="experience"
+                  name="experience"
+                  value={formData.experience}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val) && val >= 0 && val <= 2) {
+                      setFormData(prev => ({ ...prev, experience: val }));
+                    } else if (e.target.value === '') {
+                      setFormData(prev => ({ ...prev, experience: 0 }));
+                    }
+                  }}
                   className="form-control"
-                >
-                  <option value="">Select duration</option>
-                  {durations.map(dur => (
-                    <option key={dur} value={dur}>{dur}</option>
-                  ))}
-                </select>
+                  min={0}
+                  max={2}
+                  placeholder="0, 1 or 2"
+                />
               </div>
             </div>
 
@@ -306,14 +327,13 @@ const PostJob = () => {
                     min="0"
                   />
                   <select
-                    name="currency"
-                    value={formData.currency}
+                    name="salary_type"
+                    value={formData.salary_type}
                     onChange={handleInputChange}
                     className="form-control"
                   >
-                    <option value="INR">INR</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
+                    <option value="LPA">LPA (Lakhs Per Annum)</option>
+                    <option value="Monthly">Monthly salary</option>
                   </select>
                 </div>
               </div>
@@ -419,7 +439,7 @@ const PostJob = () => {
             >
               {loading ? 'Posting...' : 'Post Job Opportunity'}
             </button>
-            <a href="/company-jobs" className="btn-cancel">Cancel</a>
+            <a href="/company/jobs" className="btn-cancel">Cancel</a>
           </div>
         </form>
       </div>

@@ -32,7 +32,8 @@ function EditProfile() {
       linkedin: userData.linkedin || '',
       github_url: userData.github_url || '',
       portfolio_url: userData.portfolio_url || '',
-      bio: userData.bio || ''
+      bio: userData.bio || '',
+      skills: userData.skills || ''
     });
     setLoading(false);
   }, [navigate]);
@@ -51,7 +52,7 @@ function EditProfile() {
     try {
       const token = utils.getToken();
       const response = await authAPI.updateProfile(formData, token);
-      
+
       // Update local storage with the response data
       if (response.user) {
         utils.saveUser(response.user);
@@ -60,7 +61,7 @@ function EditProfile() {
         const updatedUser = { ...user, ...formData };
         utils.saveUser(updatedUser);
       }
-      
+
       addNotification('Profile updated successfully!', 'success');
       navigate('/profile');
     } catch (error) {
@@ -294,6 +295,27 @@ function EditProfile() {
                   <option value="Graduate">Graduate</option>
                 </select>
               </div>
+              <div style={{ marginTop: '20px' }}>
+                <label style={{ color: theme.colors.text, fontWeight: '600', marginBottom: '5px', display: 'block' }}>
+                  Skills (comma separated)
+                </label>
+                <input
+                  type="text"
+                  name="skills"
+                  value={formData.skills}
+                  onChange={handleChange}
+                  placeholder="Python, React, Java..."
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: `2px solid ${theme.colors.border}`,
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    backgroundColor: theme.colors.surface,
+                    color: theme.colors.text
+                  }}
+                />
+              </div>
             </div>
           )}
 
@@ -466,8 +488,8 @@ function EditProfile() {
               type="submit"
               disabled={saving}
               style={{
-                background: saving 
-                  ? theme.colors.textSecondary 
+                background: saving
+                  ? theme.colors.textSecondary
                   : `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})`,
                 color: 'white',
                 border: 'none',
