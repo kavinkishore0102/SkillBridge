@@ -11,7 +11,7 @@ function Projects() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [skillFilter, setSkillFilter] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
+  const [sortBy, setSortBy] = useState('recommended');
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const theme = useTheme();
@@ -33,8 +33,9 @@ function Projects() {
       try {
         const currentUser = utils.getUser();
         setUser(currentUser);
-        
-        const response = await projectAPI.getAllProjects();
+
+        const token = utils.getToken();
+        const response = await projectAPI.getAllProjects(token);
         setProjects(response.projects || []);
         setFilteredProjects(response.projects || []);
       } catch (error) {
@@ -70,6 +71,9 @@ function Projects() {
 
     // Sort
     switch (sortBy) {
+      case 'recommended':
+        // Do nothing, keep backend order (which is sorted by relevance)
+        break;
       case 'newest':
         filtered.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
         break;
@@ -103,17 +107,17 @@ function Projects() {
     try {
       const token = utils.getToken();
       const response = await projectAPI.applyToProject(projectId, token);
-      
+
       // Find the project to get its title
       const appliedProject = projects.find(p => p.id === projectId);
       const projectTitle = appliedProject ? appliedProject.title : 'Unknown Project';
-      
+
       // Add notification for successful application
       addNotification(
         `Successfully applied to "${projectTitle}"! You will be notified about the review status.`,
         "Just now"
       );
-      
+
       alert('Application submitted successfully!');
     } catch (error) {
       console.error('Error applying to project:', error);
@@ -148,10 +152,10 @@ function Projects() {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         backgroundColor: theme.colors.background,
         color: theme.colors.text
@@ -177,20 +181,20 @@ function Projects() {
   }
 
   return (
-    <div style={{ 
+    <div style={{
       backgroundColor: theme.colors.background,
       color: theme.colors.text,
       minHeight: '100vh',
       transition: 'all 0.3s ease'
     }}>
-      <div style={{ 
-        padding: '20px', 
+      <div style={{
+        padding: '20px',
         fontFamily: 'Arial, sans-serif'
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          
+
           {/* Header */}
-          <div style={{ 
+          <div style={{
             marginBottom: '30px',
             padding: '30px',
             backgroundColor: theme.colors.card,
@@ -200,16 +204,16 @@ function Projects() {
             background: `linear-gradient(135deg, ${theme.colors.primary}20 0%, ${theme.colors.secondary}20 100%)`,
             border: `1px solid ${theme.colors.border}`
           }}>
-            <h1 style={{ 
-              margin: '0 0 10px 0', 
+            <h1 style={{
+              margin: '0 0 10px 0',
               color: theme.colors.text,
               fontSize: '32px',
               fontWeight: '700'
             }}>
               🚀 Discover Amazing Projects
             </h1>
-            <p style={{ 
-              margin: 0, 
+            <p style={{
+              margin: 0,
               color: theme.colors.textSecondary,
               fontSize: '16px'
             }}>
@@ -218,8 +222,8 @@ function Projects() {
           </div>
 
           {/* Filters */}
-          <div style={{ 
-            display: 'grid', 
+          <div style={{
+            display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
             gap: '20px',
             marginBottom: '30px',
@@ -230,9 +234,9 @@ function Projects() {
             border: `1px solid ${theme.colors.border}`
           }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
                 fontWeight: '600',
                 color: theme.colors.text,
                 fontSize: '14px'
@@ -263,9 +267,9 @@ function Projects() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
                 fontWeight: '600',
                 color: theme.colors.text,
                 fontSize: '14px'
@@ -297,9 +301,9 @@ function Projects() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
                 fontWeight: '600',
                 color: theme.colors.text,
                 fontSize: '14px'
@@ -323,6 +327,7 @@ function Projects() {
                   cursor: 'pointer'
                 }}
               >
+                <option value="recommended">Recommended (Skill Match)</option>
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
                 <option value="deadline">Deadline</option>
@@ -332,7 +337,7 @@ function Projects() {
           </div>
 
           {/* Projects Count */}
-          <div style={{ 
+          <div style={{
             marginBottom: '20px',
             padding: '15px',
             backgroundColor: theme.colors.primary + '20',
@@ -347,7 +352,7 @@ function Projects() {
 
           {/* Error Message */}
           {error && (
-            <div style={{ 
+            <div style={{
               padding: '15px',
               backgroundColor: theme.colors.danger + '20',
               color: theme.colors.danger,
@@ -359,119 +364,135 @@ function Projects() {
             </div>
           )}
 
-        {/* Projects Grid */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-          gap: '20px'
-        }}>
-          {filteredProjects.map(project => (
-            <div key={project.id} style={{ 
-              backgroundColor: theme.colors.card,
-              borderRadius: '8px',
-              padding: '20px',
-              boxShadow: theme.shadows.card,
-              border: isDeadlinePassed(project.deadline) ? `2px solid ${theme.colors.danger}` : 
-                     isDeadlineSoon(project.deadline) ? `2px solid ${theme.colors.warning}` : `1px solid ${theme.colors.border}`,
-              transition: 'all 0.3s ease'
-            }}>
-              <h3 style={{ 
-                margin: '0 0 10px 0', 
-                color: theme.colors.text,
-                fontSize: '18px'
+          {/* Projects Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+            gap: '20px'
+          }}>
+            {filteredProjects.map(project => (
+              <div key={project.id} style={{
+                backgroundColor: theme.colors.card,
+                borderRadius: '8px',
+                padding: '20px',
+                boxShadow: theme.shadows.card,
+                border: isDeadlinePassed(project.deadline) ? `2px solid ${theme.colors.danger}` :
+                  isDeadlineSoon(project.deadline) ? `2px solid ${theme.colors.warning}` : `1px solid ${theme.colors.border}`,
+                transition: 'all 0.3s ease'
               }}>
-                {project.title}
-              </h3>
-              
-              <p style={{ 
-                margin: '0 0 15px 0', 
-                color: theme.colors.textSecondary,
-                lineHeight: '1.5'
-              }}>
-                {project.description}
-              </p>
+                <h3 style={{
+                  margin: '0 0 10px 0',
+                  color: theme.colors.text,
+                  fontSize: '18px'
+                }}>
+                  {project.title}
+                </h3>
 
-              {project.skills && (
-                <div style={{ marginBottom: '15px' }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    flexWrap: 'wrap', 
-                    gap: '5px' 
-                  }}>
-                    {project.skills.split(',').map((skill, index) => (
-                      <span key={index} style={{ 
-                        backgroundColor: theme.colors.primary + '20',
-                        color: theme.colors.primary,
-                        padding: '4px 8px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        border: `1px solid ${theme.colors.primary}40`
-                      }}>
-                        {skill.trim()}
-                      </span>
-                    ))}
+                <p style={{
+                  margin: '0 0 15px 0',
+                  color: theme.colors.textSecondary,
+                  lineHeight: '1.5'
+                }}>
+                  {project.description}
+                </p>
+
+                {project.skills && (
+                  <div style={{ marginBottom: '15px' }}>
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '5px'
+                    }}>
+                      {project.skills.split(',').map((skill, index) => (
+                        <span key={index} style={{
+                          backgroundColor: theme.colors.primary + '20',
+                          color: theme.colors.primary,
+                          padding: '4px 8px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          border: `1px solid ${theme.colors.primary}40`
+                        }}>
+                          {skill.trim()}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '15px',
-                fontSize: '14px',
-                color: theme.colors.textSecondary
-              }}>
-                <span>📅 Posted: {formatDate(project.CreatedAt)}</span>
-                <span style={{ 
-                  color: isDeadlinePassed(project.deadline) ? theme.colors.danger : 
-                         isDeadlineSoon(project.deadline) ? theme.colors.warning : theme.colors.textSecondary
-                }}>
-                  ⏰ Due: {formatDate(project.deadline)}
-                </span>
-              </div>
-
-              {isDeadlinePassed(project.deadline) && (
-                <div style={{ 
-                  backgroundColor: theme.colors.danger + '20',
-                  color: theme.colors.danger,
-                  padding: '8px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                   marginBottom: '15px',
-                  textAlign: 'center',
-                  border: `1px solid ${theme.colors.danger}40`
+                  fontSize: '14px',
+                  color: theme.colors.textSecondary
                 }}>
-                  ⚠️ Deadline has passed
+                  <span>📅 Posted: {formatDate(project.CreatedAt)}</span>
+                  <span style={{
+                    color: isDeadlinePassed(project.deadline) ? theme.colors.danger :
+                      isDeadlineSoon(project.deadline) ? theme.colors.warning : theme.colors.textSecondary
+                  }}>
+                    ⏰ Due: {formatDate(project.deadline)}
+                  </span>
                 </div>
-              )}
 
-              {isDeadlineSoon(project.deadline) && !isDeadlinePassed(project.deadline) && (
-                <div style={{ 
-                  backgroundColor: theme.colors.warning + '20',
-                  color: theme.colors.warning,
-                  padding: '8px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  marginBottom: '15px',
-                  textAlign: 'center',
-                  border: `1px solid ${theme.colors.warning}40`
+                {isDeadlinePassed(project.deadline) && (
+                  <div style={{
+                    backgroundColor: theme.colors.danger + '20',
+                    color: theme.colors.danger,
+                    padding: '8px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    marginBottom: '15px',
+                    textAlign: 'center',
+                    border: `1px solid ${theme.colors.danger}40`
+                  }}>
+                    ⚠️ Deadline has passed
+                  </div>
+                )}
+
+                {isDeadlineSoon(project.deadline) && !isDeadlinePassed(project.deadline) && (
+                  <div style={{
+                    backgroundColor: theme.colors.warning + '20',
+                    color: theme.colors.warning,
+                    padding: '8px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    marginBottom: '15px',
+                    textAlign: 'center',
+                    border: `1px solid ${theme.colors.warning}40`
+                  }}>
+                    ⏰ Deadline approaching soon!
+                  </div>
+                )}
+
+                <div style={{
+                  display: 'flex',
+                  gap: '10px',
+                  justifyContent: 'flex-end'
                 }}>
-                  ⏰ Deadline approaching soon!
-                </div>
-              )}
-
-              <div style={{ 
-                display: 'flex', 
-                gap: '10px',
-                justifyContent: 'flex-end'
-              }}>
-                {user && user.role === 'student' && !isDeadlinePassed(project.deadline) && (
+                  {user && user.role === 'student' && !isDeadlinePassed(project.deadline) && (
+                    <button
+                      onClick={() => handleApplyToProject(project.id)}
+                      style={{
+                        backgroundColor: theme.colors.success,
+                        color: 'white',
+                        border: 'none',
+                        padding: '8px 16px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      Apply Now
+                    </button>
+                  )}
                   <button
-                    onClick={() => handleApplyToProject(project.id)}
+                    onClick={() => navigate(`/projects/${project.id}`)}
                     style={{
-                      backgroundColor: theme.colors.success,
+                      backgroundColor: theme.colors.blue,
                       color: 'white',
                       border: 'none',
                       padding: '8px 16px',
@@ -480,54 +501,38 @@ function Projects() {
                       fontSize: '14px',
                       transition: 'all 0.3s ease'
                     }}
+                    onMouseEnter={(e) => {
+                      e.target.style.opacity = '0.9';
+                      e.target.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.opacity = '1';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
                   >
-                    Apply Now
+                    View Details
                   </button>
-                )}
-                <button
-                  onClick={() => navigate(`/projects/${project.id}`)}
-                  style={{
-                    backgroundColor: theme.colors.blue,
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.opacity = '0.9';
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.opacity = '1';
-                    e.target.style.transform = 'translateY(0)';
-                  }}
-                >
-                  View Details
-                </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* No Projects Message */}
-        {filteredProjects.length === 0 && !loading && (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '40px',
-            backgroundColor: theme.colors.card,
-            borderRadius: '8px',
-            boxShadow: theme.shadows.card,
-            border: `1px solid ${theme.colors.border}`
-          }}>
-            <h3 style={{ color: theme.colors.text }}>No projects found</h3>
-            <p style={{ color: theme.colors.textSecondary }}>
-              Try adjusting your search or filter criteria
-            </p>
+            ))}
           </div>
-        )}
+
+          {/* No Projects Message */}
+          {filteredProjects.length === 0 && !loading && (
+            <div style={{
+              textAlign: 'center',
+              padding: '40px',
+              backgroundColor: theme.colors.card,
+              borderRadius: '8px',
+              boxShadow: theme.shadows.card,
+              border: `1px solid ${theme.colors.border}`
+            }}>
+              <h3 style={{ color: theme.colors.text }}>No projects found</h3>
+              <p style={{ color: theme.colors.textSecondary }}>
+                Try adjusting your search or filter criteria
+              </p>
+            </div>
+          )}
 
         </div>
       </div>
