@@ -20,11 +20,13 @@ func main() {
 	db.AutoMigrate(&models.JobListing{})
 	db.AutoMigrate(&models.JobApplication{})
 	db.AutoMigrate(&models.UserSavedJob{})
+	db.AutoMigrate(&models.InterviewResource{}) // Add this
 	controller.InitAuth(db)
 	controller.InitJobDB(db)
+	controller.SeedInterviewResources() // Seed data
 	//setup router
 	r := router.SetupRouter()
-	
+
 	// Use PORT environment variable if set, otherwise default to 8080
 	port := os.Getenv("PORT")
 	if port == "" {

@@ -3,6 +3,7 @@ package router
 import (
 	"SkillBridge/controller"
 	"SkillBridge/middleware"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -57,7 +58,7 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/profile", controller.GetProfile)
 		authorized.PUT("/profile", controller.UpdateProfile)
 		authorized.POST("/refresh-token", controller.RefreshToken)
-		
+
 		// GitHub integration routes
 		authorized.POST("/github/token", controller.SetGithubToken)
 		authorized.DELETE("/github/token", controller.RemoveGithubToken)
@@ -106,6 +107,9 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/applications/:id", middleware.AuthorizeRoles("company"), controller.GetApplicationDetail)
 		authorized.PATCH("/applications/:id/status", middleware.AuthorizeRoles("company"), controller.UpdateApplicationStatus)
 		authorized.GET("/company/application-stats", middleware.AuthorizeRoles("company"), controller.GetApplicationStats)
+
+		// 🎓 Interview Prep
+		authorized.GET("/interview-prep", controller.GetInterviewResources)
 
 	}
 

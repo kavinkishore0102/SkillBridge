@@ -185,6 +185,13 @@ export const guidesAPI = {
   }
 };
 
+// Interview Prep API calls
+export const interviewAPI = {
+  getInterviewResources: async (token) => {
+    return await apiCall('/interview-prep', 'GET', null, token);
+  }
+};
+
 // Dashboard API calls
 export const dashboardAPI = {
   // Get student dashboard
