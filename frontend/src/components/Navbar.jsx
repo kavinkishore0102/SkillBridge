@@ -42,13 +42,14 @@ const Navbar = () => {
 
   const navItems = [
     { name: 'Projects', path: '/projects', icon: '' },
-    { name: 'Dashboard', path: '/dashboard', icon: '' },
-    ...(user?.role === 'student' ? [{ name: 'Applications', path: '/applied-projects', icon: '' }] : []),
-    ...(user?.role === 'student' ? [{ name: 'Submissions', path: '/submissions', icon: '' }] : []),
     ...(user?.role === 'student' ? [{ name: 'Jobs', path: '/jobs', icon: '' }] : []),
     ...(user?.role === 'company' ? [{ name: 'Jobs', path: '/company/jobs', icon: '' }] : []),
+    ...(user?.role === 'student' ? [{ name: 'Applications', path: '/applied-projects', icon: '' }] : []),
+    ...(user?.role === 'student' ? [{ name: 'Submissions', path: '/submissions', icon: '' }] : []),
+    ...(user?.role === 'company' ? [{ name: 'Submissions', path: '/company/submissions', icon: '' }] : []),
+    ...(user?.role === 'student' ? [{ name: 'Interview Prep', path: '/interview-prep', icon: '' }] : []),
     ...(user?.role === 'company' ? [{ name: 'Post Project', path: '/post-project', icon: '' }] : []),
-    
+    { name: 'Dashboard', path: '/dashboard', icon: '' },
     { name: 'Profile', path: '/profile', icon: '' },
   ];
 
@@ -75,9 +76,9 @@ const Navbar = () => {
           alignItems: 'center',
           height: '60px'
         }}>
-          
+
           {/* Logo */}
-          <div 
+          <div
             onClick={() => navigate('/dashboard')}
             style={{
               display: 'flex',
@@ -107,17 +108,17 @@ const Navbar = () => {
               height: '40px',
               transition: 'transform 0.3s ease'
             }}>
-              <img 
-                src="/skillbridge-logo.svg" 
-                alt="SkillBridge Logo" 
-                style={{ 
-                  width: '36px', 
+              <img
+                src="/skillbridge-logo.svg"
+                alt="SkillBridge Logo"
+                style={{
+                  width: '36px',
                   height: '36px',
                   transition: 'all 0.3s ease'
-                }} 
+                }}
               />
             </div>
-            <span style={{ 
+            <span style={{
               color: theme.colors.primary,
               transition: 'color 0.3s ease'
             }}>SkillBridge</span>
@@ -400,9 +401,9 @@ const Navbar = () => {
                   color: theme.colors.text
                 }}>
                   {user.picture && (
-                    <img 
-                      src={user.picture} 
-                      alt="Profile" 
+                    <img
+                      src={user.picture}
+                      alt="Profile"
                       style={{
                         width: '32px',
                         height: '32px',
@@ -416,15 +417,15 @@ const Navbar = () => {
                     flexDirection: 'column',
                     alignItems: 'flex-start'
                   }}>
-                    <span style={{ 
-                      fontSize: '14px', 
+                    <span style={{
+                      fontSize: '14px',
                       fontWeight: '500',
                       color: theme.colors.text
                     }}>
                       {user.name}
                     </span>
-                    <span style={{ 
-                      fontSize: '12px', 
+                    <span style={{
+                      fontSize: '12px',
                       color: theme.colors.textSecondary,
                       textTransform: 'capitalize'
                     }}>

@@ -17,6 +17,7 @@ import CompanyProjects from './CompanyProjects';
 import CompanyApplications from './CompanyApplications';
 import CompanyJobManagement from './CompanyJobManagement';
 import Jobs from './Jobs';
+import InterviewPrep from './InterviewPrep';
 import Submissions from './Submissions';
 import Guides from './Guides';
 import GuidesTest from './GuidesTest';
@@ -50,6 +51,7 @@ function AppContent() {
           <Route path="/company/applications" element={<CompanyApplications />} />
           <Route path="/company/jobs" element={<CompanyJobManagement />} />
           <Route path="/jobs" element={<Jobs />} />
+          <Route path="/interview-prep" element={<InterviewPrep />} />
           <Route path="/submissions" element={<Submissions />} />
           <Route path="/guides" element={<GuidesSimple />} />
           <Route path="/guides-full" element={<Guides />} />
@@ -59,7 +61,7 @@ function AppContent() {
           <Route path="/debug" element={<DebugPage />} />
         </Routes>
       </div>
-      
+
       {/* SkillBridge AI Chatbot - Available on all pages */}
       <SimpleChatbot />
     </div>
