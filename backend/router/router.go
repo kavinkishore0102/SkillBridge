@@ -111,6 +111,9 @@ func SetupRouter() *gin.Engine {
 		// 🎓 Interview Prep
 		authorized.GET("/interview-prep", controller.GetInterviewResources)
 
+		// 📄 Resume Builder
+		authorized.POST("/resume/generate", middleware.AuthorizeRoles("student"), controller.GenerateResume)
+
 	}
 
 	return router

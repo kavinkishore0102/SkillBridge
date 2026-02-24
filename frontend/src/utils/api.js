@@ -192,6 +192,13 @@ export const interviewAPI = {
   }
 };
 
+// Resume Builder API calls
+export const resumeAPI = {
+  generateResume: async (token, payload) => {
+    return await apiCall('/resume/generate', 'POST', payload, token);
+  }
+};
+
 // Dashboard API calls
 export const dashboardAPI = {
   // Get student dashboard
