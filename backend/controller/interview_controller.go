@@ -2,6 +2,7 @@ package controller
 
 import (
 	"SkillBridge/models"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -56,12 +57,12 @@ func GetInterviewResources(c *gin.Context) {
 		resources = []models.InterviewResource{}
 	}
 
-	// Organize by type
+	// Organize by type and track which skills have DB entries
 	var videos []models.InterviewResource
 	var questions []models.InterviewResource
 
-	// Track which skills have videos
 	skillsWithVideos := make(map[string]bool)
+	skillsWithQuestions := make(map[string]bool)
 
 	for _, r := range resources {
 		if r.Type == "video" {
@@ -69,24 +70,99 @@ func GetInterviewResources(c *gin.Context) {
 			skillsWithVideos[strings.ToLower(r.Skill)] = true
 		} else if r.Type == "question" {
 			questions = append(questions, r)
+			skillsWithQuestions[strings.ToLower(r.Skill)] = true
 		}
 	}
 
-	// Dynamically add a YouTube search link for any user skill that doesn't have a video
-	for _, skill := range userSkills {
+	// For any skill not in the DB, generate dynamic links
+	for i, skill := range userSkills {
+		skillEncoded := strings.ReplaceAll(skill, " ", "+")
+		skillTitle := strings.Title(skill)
+
+		// Dynamic Videos — if no DB videos exist for this skill
 		if !skillsWithVideos[skill] {
-			// Generate dynamic search URL
-			searchQuery := strings.ReplaceAll(skill+" interview tutorial", " ", "+")
-			dynamicVideo := models.InterviewResource{
-				ID:          uint(len(videos) + 1000), // Fake ID
-				Skill:       skill,
-				Type:        "video",
-				Title:       strings.Title(skill) + " Interview Tutorials (YouTube Search)",
-				URL:         "https://www.youtube.com/results?search_query=" + searchQuery,
-				Difficulty:  "All Levels",
-				Description: "Automatically generated search link to find the best tutorials on YouTube for " + skill + ".",
+			dynamicVideos := []models.InterviewResource{
+				{
+					ID:          uint(10000 + i*10 + 1),
+					Skill:       skill,
+					Type:        "video",
+					Title:       skillTitle + " Interview Questions & Tutorials (YouTube)",
+					URL:         "https://www.youtube.com/results?search_query=" + skillEncoded + "+interview+questions",
+					Difficulty:  "All Levels",
+					Description: "Search YouTube for the best " + skillTitle + " interview preparation videos.",
+				},
+				{
+					ID:          uint(10000 + i*10 + 2),
+					Skill:       skill,
+					Type:        "video",
+					Title:       "Learn " + skillTitle + " from Scratch (YouTube)",
+					URL:         "https://www.youtube.com/results?search_query=learn+" + skillEncoded + "+for+beginners+full+course",
+					Difficulty:  "Beginner",
+					Description: "Find beginner-friendly " + skillTitle + " courses on YouTube.",
+				},
+				{
+					ID:          uint(10000 + i*10 + 3),
+					Skill:       skill,
+					Type:        "video",
+					Title:       skillTitle + " Full Course - FreeCodeCamp Search",
+					URL:         "https://www.youtube.com/@freecodecamp/search?query=" + skillEncoded,
+					Difficulty:  "Intermediate",
+					Description: "Search FreeCodeCamp's YouTube channel for " + skillTitle + " tutorials.",
+				},
 			}
-			videos = append(videos, dynamicVideo)
+			videos = append(videos, dynamicVideos...)
+		}
+
+		// Dynamic Questions — if no DB questions exist for this skill
+		if !skillsWithQuestions[skill] {
+			dynamicQuestions := []models.InterviewResource{
+				{
+					ID:         uint(20000 + i*10 + 1),
+					Skill:      skill,
+					Type:       "question",
+					Title:      skillTitle + " Interview Questions - GeeksforGeeks",
+					URL:        "https://www.geeksforgeeks.org/" + strings.ReplaceAll(skill, " ", "-") + "-interview-questions/",
+					Difficulty: "All Levels",
+					Content:    "Browse a comprehensive list of " + skillTitle + " interview questions on GeeksforGeeks, covering beginner to advanced topics.",
+				},
+				{
+					ID:         uint(20000 + i*10 + 2),
+					Skill:      skill,
+					Type:       "question",
+					Title:      skillTitle + " Interview Questions - InterviewBit",
+					URL:        "https://www.interviewbit.com/search/?q=" + skillEncoded + "+interview+questions",
+					Difficulty: "Intermediate",
+					Content:    "Practice " + skillTitle + " interview questions on InterviewBit with answers and explanations.",
+				},
+				{
+					ID:         uint(20000 + i*10 + 3),
+					Skill:      skill,
+					Type:       "question",
+					Title:      skillTitle + " Problems - LeetCode",
+					URL:        "https://leetcode.com/tag/" + strings.ReplaceAll(skill, " ", "-") + "/",
+					Difficulty: "Advanced",
+					Content:    "Solve " + skillTitle + " coding problems on LeetCode to prepare for technical interviews.",
+				},
+				{
+					ID:         uint(20000 + i*10 + 4),
+					Skill:      skill,
+					Type:       "question",
+					Title:      skillTitle + " Interview Questions - Glassdoor",
+					URL:        "https://www.glassdoor.com/Interview/" + skillEncoded + "-interview-questions-SRCH_KT0," + fmt.Sprintf("%d", len(skill)) + ".htm",
+					Difficulty: "All Levels",
+					Content:    "See real " + skillTitle + " interview questions asked at top companies, shared by candidates on Glassdoor.",
+				},
+				{
+					ID:         uint(20000 + i*10 + 5),
+					Skill:      skill,
+					Type:       "question",
+					Title:      skillTitle + " Tutorial & FAQ - TutorialsPoint",
+					URL:        "https://www.tutorialspoint.com/" + strings.ReplaceAll(skill, " ", "_") + "/index.htm",
+					Difficulty: "Beginner",
+					Content:    "Read " + skillTitle + " tutorials and commonly asked questions on TutorialsPoint.",
+				},
+			}
+			questions = append(questions, dynamicQuestions...)
 		}
 	}
 
