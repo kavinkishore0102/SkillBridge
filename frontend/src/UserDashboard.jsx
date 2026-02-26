@@ -43,7 +43,6 @@ const getDashboardConfig = (role, data, user, theme) => {
       stats: [
         { key: 'assigned_projects', label: 'Assigned Students', color: theme.colors.warning, value: data?.assigned_projects || 0 },
         { key: 'total_submissions', label: 'Total Submissions', color: theme.colors.primary, value: data?.total_submissions || 0 },
-        { key: 'pending_reviews', label: 'Pending Reviews', color: theme.colors.danger, value: data?.pending_reviews || 0 },
         { key: 'completed_reviews', label: 'Completed Reviews', color: theme.colors.success, value: data?.completed_reviews || 0 },
       ],
       profileLinks: [
@@ -93,7 +92,7 @@ function Dashboard() {
         }
 
         let userData = utils.getUser();
-        
+
         // Get user data if not in localStorage
         if (!userData && token && token !== 'google-oauth-token') {
           try {
@@ -136,7 +135,7 @@ function Dashboard() {
               default:
                 console.log('Unknown role:', userData.role);
             }
-            
+
             if (dashboardResponse) {
               setDashboardData(dashboardResponse);
             }
@@ -163,7 +162,7 @@ function Dashboard() {
     };
 
     window.addEventListener('applicationsUpdated', handleApplicationsUpdate);
-    
+
     return () => {
       window.removeEventListener('applicationsUpdated', handleApplicationsUpdate);
     };
@@ -200,16 +199,16 @@ function Dashboard() {
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
     setUpdating(true);
-    
+
     try {
       const token = utils.getToken();
       await authAPI.updateProfile(updateFormData, token);
-      
+
       // Update user state with new data
       const updatedUser = { ...user, ...updateFormData };
       setUser(updatedUser);
       utils.saveUser(updatedUser);
-      
+
       setShowUpdateModal(false);
       alert('Profile updated successfully!');
     } catch (error) {
@@ -226,10 +225,10 @@ function Dashboard() {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         flexDirection: 'column'
       }}>
@@ -241,10 +240,10 @@ function Dashboard() {
 
   if (!user) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         flexDirection: 'column',
         backgroundColor: theme.colors.background,
@@ -257,8 +256,8 @@ function Dashboard() {
   }
 
   return (
-    <div style={{ 
-      padding: '40px', 
+    <div style={{
+      padding: '40px',
       fontFamily: 'Arial, sans-serif',
       backgroundColor: theme.colors.background,
       color: theme.colors.text,
@@ -267,9 +266,9 @@ function Dashboard() {
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: '30px',
           padding: '20px',
@@ -280,12 +279,12 @@ function Dashboard() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             {user.picture && (
-              <img 
-                src={user.picture} 
-                alt="Profile" 
-                style={{ 
-                  width: '50px', 
-                  height: '50px', 
+              <img
+                src={user.picture}
+                alt="Profile"
+                style={{
+                  width: '50px',
+                  height: '50px',
                   borderRadius: '50%',
                   objectFit: 'cover'
                 }}
@@ -299,7 +298,7 @@ function Dashboard() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button 
+            <button
               onClick={() => navigate('/projects')}
               style={{
                 padding: '10px 20px',
@@ -314,7 +313,7 @@ function Dashboard() {
             >
               View Projects
             </button>
-            <button 
+            <button
               onClick={handleLogout}
               style={{
                 padding: '10px 20px',
@@ -491,15 +490,15 @@ function Dashboard() {
           border: `1px solid ${theme.colors.border}`,
           boxShadow: theme.shadows.card
         }}>
-          <h3 style={{ 
-            color: theme.colors.text, 
+          <h3 style={{
+            color: theme.colors.text,
             marginBottom: '20px',
             fontSize: '20px',
             fontWeight: '600'
           }}>
             🚀 Quick Actions
           </h3>
-          
+
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -552,7 +551,7 @@ function Dashboard() {
                 >
                   💼 Apply for Jobs
                 </button>
-                
+
                 <button
                   onClick={() => navigate('/applied-projects')}
                   style={{
@@ -790,28 +789,7 @@ function Dashboard() {
                   ✓ Pending Confirmations
                 </button>
 
-                <button
-                  onClick={() => navigate('/guide/reviews')}
-                  style={{
-                    padding: '15px 20px',
-                    backgroundColor: theme.colors.secondary,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                >
-                  ⭐ Pending Reviews
-                </button>
+
 
                 <button
                   onClick={() => navigate('/conversations')}
@@ -890,7 +868,7 @@ function Dashboard() {
             overflowY: 'auto'
           }}>
             <h3 style={{ marginTop: 0, marginBottom: '20px' }}>Update Profile</h3>
-            
+
             <form onSubmit={handleUpdateSubmit}>
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
