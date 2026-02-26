@@ -20,6 +20,7 @@ import Jobs from './Jobs';
 import InterviewPrep from './InterviewPrep';
 import ResumeBuilder from './ResumeBuilder';
 import Submissions from './Submissions';
+import CompanySubmissions from './CompanySubmissions';
 import Guides from './Guides';
 import GuidesTest from './GuidesTest';
 import GuidesSimple from './GuidesSimple';
@@ -51,6 +52,7 @@ function AppContent() {
           <Route path="/company/projects" element={<CompanyProjects />} />
           <Route path="/company/applications" element={<CompanyApplications />} />
           <Route path="/company/jobs" element={<CompanyJobManagement />} />
+          <Route path="/company/submissions" element={<CompanySubmissions />} />
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/interview-prep" element={<InterviewPrep />} />
           <Route path="/resume-builder" element={<ResumeBuilder />} />
