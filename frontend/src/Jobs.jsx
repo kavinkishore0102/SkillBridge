@@ -26,6 +26,9 @@ function Jobs() {
   const [appliedJobIds, setAppliedJobIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [applyingId, setApplyingId] = useState(null);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [coverLetter, setCoverLetter] = useState('');
+  const [resume, setResume] = useState('');
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
@@ -71,24 +74,39 @@ function Jobs() {
     }
   };
 
-  const handleApply = async (jobId) => {
+  const handleApplyClick = (job) => {
+    setSelectedJob(job);
+    setCoverLetter('');
+    setResume('');
+    setError('');
+    setSuccessMessage('');
+  };
+
+  const handleApply = async () => {
+    if (!selectedJob) return;
     const token = utils.getToken();
     if (!token) {
       navigate('/');
       return;
     }
-    setApplyingId(jobId);
+    setApplyingId(selectedJob.id);
     setError('');
     try {
-      await axios.post(`${API_BASE}/jobs/${jobId}/apply`, {}, {
+      await axios.post(`${API_BASE}/jobs/${selectedJob.id}/apply`, {
+        cover_letter: coverLetter,
+        resume: resume
+      }, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      setAppliedJobIds(prev => new Set([...prev, jobId]));
+      setAppliedJobIds(prev => new Set([...prev, selectedJob.id]));
       setSuccessMessage('Application submitted successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      setTimeout(() => {
+        setSuccessMessage('');
+        setSelectedJob(null);
+      }, 2000);
     } catch (err) {
       const msg = err.response?.data?.error || 'Failed to apply';
       setError(msg);
@@ -216,7 +234,7 @@ function Jobs() {
                         </span>
                       ) : (
                         <button
-                          onClick={() => handleApply(job.id)}
+                          onClick={() => handleApplyClick(job)}
                           disabled={applyingId === job.id}
                           style={{
                             padding: '10px 20px',
@@ -240,6 +258,75 @@ function Jobs() {
           </div>
         )}
       </div>
+
+      {selectedJob && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: theme.colors.surface,
+            padding: '24px',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: theme.shadows?.modal || '0 4px 6px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '20px' }}>Apply: {selectedJob.title}</h2>
+              <button onClick={() => setSelectedJob(null)} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: theme.colors.textSecondary }}>×</button>
+            </div>
+            
+            <p style={{ color: theme.colors.textSecondary, marginBottom: '20px' }}>
+              Review the details below and fill out any necessary information before submitting.
+            </p>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Cover Letter (Optional)</label>
+              <textarea
+                value={coverLetter}
+                onChange={e => setCoverLetter(e.target.value)}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: `1px solid ${theme.colors.border}`, minHeight: '100px' }}
+                placeholder="Why are you a great fit for this role?"
+              />
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Resume Link (Optional)</label>
+              <input
+                type="text"
+                value={resume}
+                onChange={e => setResume(e.target.value)}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: `1px solid ${theme.colors.border}` }}
+                placeholder="https://link-to-your-resume.com"
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setSelectedJob(null)}
+                style={{ padding: '10px 20px', borderRadius: '8px', border: `1px solid ${theme.colors.border}`, background: 'transparent', cursor: 'pointer', color: theme.colors.text }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleApply}
+                disabled={applyingId === selectedJob.id}
+                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: theme.colors.primary, color: 'white', cursor: applyingId === selectedJob.id ? 'wait' : 'pointer', fontWeight: '600' }}
+              >
+                {applyingId === selectedJob.id ? 'Submitting...' : 'Confirm Apply'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
