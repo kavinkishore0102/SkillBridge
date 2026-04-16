@@ -102,6 +102,7 @@ const CompanyJobManagement = () => {
       if (selectedJob) {
         fetchJobApplications(selectedJob);
       }
+      setSelectedApplication(null); // Close the modal
       
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
@@ -468,9 +469,25 @@ const CompanyJobManagement = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setSelectedApplication(null)}>×</button>
             
-            <div className="applicant-detail">
+              <div className="applicant-detail">
               <h2>{selectedApplication.user.name}</h2>
               <p className="email">{selectedApplication.user.email}</p>
+              
+              <div className="student-profile" style={{ marginBottom: '20px', padding: '12px', background: '#f8f9fa', borderRadius: '8px' }}>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>Student Profile</h3>
+                {selectedApplication.user.university && (
+                  <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>University:</strong> {selectedApplication.user.university} {selectedApplication.user.major ? `(${selectedApplication.user.major})` : ''}</p>
+                )}
+                {selectedApplication.user.skills && (
+                  <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Skills:</strong> {selectedApplication.user.skills}</p>
+                )}
+                {selectedApplication.user.bio && (
+                  <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Bio:</strong> {selectedApplication.user.bio}</p>
+                )}
+                {!selectedApplication.user.university && !selectedApplication.user.skills && !selectedApplication.user.bio && (
+                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#6c757d' }}>No additional profile information provided.</p>
+                )}
+              </div>
               
               <div className="detail-section">
                 <h3>Application Status</h3>
