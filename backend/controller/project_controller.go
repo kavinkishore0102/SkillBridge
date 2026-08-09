@@ -170,7 +170,7 @@ func GetAllProjects(c *gin.Context) {
 	}
 
 	var projects []models.Project
-	if err := DB.Find(&projects).Error; err != nil {
+	if err := DB.Where("deadline > ?", time.Now()).Find(&projects).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "project not found"})
 		return
 	}
@@ -605,7 +605,25 @@ func DeleteProject(c *gin.Context) {
 		return
 	}
 
-	if err := DB.Delete(&project).Error; err != nil {
+	// Use raw SQL to physically remove all child rows first.
+	// This bypasses GORM's soft-delete / model hooks entirely so the
+	// FK constraints on `submissions` and `applications` are cleared
+	// before we attempt to delete the parent project row.
+	if err := DB.Exec("DELETE FROM submissions WHERE project_id = ?", project.ID).Error; err != nil {
+		log.Printf("DeleteProject - Failed to delete submissions: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete project submissions"})
+		return
+	}
+
+	if err := DB.Exec("DELETE FROM applications WHERE project_id = ?", project.ID).Error; err != nil {
+		log.Printf("DeleteProject - Failed to delete applications: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete project applications"})
+		return
+	}
+
+	// Now safe to delete the project itself
+	if err := DB.Exec("DELETE FROM projects WHERE id = ?", project.ID).Error; err != nil {
+		log.Printf("DeleteProject - Failed to delete project: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete project"})
 		return
 	}

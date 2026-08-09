@@ -4,11 +4,56 @@
   box-sizing: border-box;
 }
 
+:root {
+  color-scheme: light;
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --card: #FFFFFF;
+  --text: #0F172A;
+  --text-secondary: #64748B;
+  --border: #E2E8F0;
+  --primary: #009966;
+  --primary-dark: #00774C;
+  --secondary: #00B894;
+  --tertiary: #00CEC9;
+  --success: #009966;
+  --warning: #D97706;
+  --danger: #DC2626;
+  --info: #00B894;
+  --shadow-card: 0 4px 8px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-navbar: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --surface-frost: rgba(255, 255, 255, 0.88);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0F172A;
+  --surface: #1E293B;
+  --card: #334155;
+  --text: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --border: #475569;
+  --primary: #00B894;
+  --primary-dark: #00774C;
+  --secondary: #00CEC9;
+  --tertiary: #22D3EE;
+  --success: #00B894;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #00CEC9;
+  --shadow-card: 0 4px 8px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-navbar: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --surface-frost: rgba(15, 23, 42, 0.88);
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--text);
 }
 
 /* Beautiful Animations */

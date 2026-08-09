@@ -472,7 +472,7 @@ func GetAllJobListings(c *gin.Context) {
 	category := c.Query("category")
 
 	var jobListings []models.JobListing
-	query := db.Where("is_active = ?", true)
+	query := db.Where("is_active = ? AND application_deadline > ?", true, time.Now())
 
 	if domain != "" {
 		query = query.Where("domain = ?", domain)

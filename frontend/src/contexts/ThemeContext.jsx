@@ -2,6 +2,17 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const ThemeContext = createContext();
 
+const getInitialDarkMode = () => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    return savedTheme === 'dark';
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+};
+
 export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (!context) {
@@ -11,24 +22,25 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(getInitialDarkMode);
 
   useEffect(() => {
-    // Check if user has a saved theme preference
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      setIsDarkMode(savedTheme === 'dark');
-    } else {
-      // Check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDarkMode(prefersDark);
+    const themeName = isDarkMode ? 'dark' : 'light';
+    document.documentElement.dataset.theme = themeName;
+    document.documentElement.style.colorScheme = themeName;
+    localStorage.setItem('theme', themeName);
+
+    let themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (!themeMeta) {
+      themeMeta = document.createElement('meta');
+      themeMeta.name = 'theme-color';
+      document.head.appendChild(themeMeta);
     }
-  }, []);
+    themeMeta.content = isDarkMode ? '#0F172A' : '#F8FAFC';
+  }, [isDarkMode]);
 
   const toggleTheme = () => {
-    const newTheme = !isDarkMode;
-    setIsDarkMode(newTheme);
-    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+    setIsDarkMode((prev) => !prev);
   };
 
   const theme = {
