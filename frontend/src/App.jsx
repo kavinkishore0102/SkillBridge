@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Navbar from './components/Navbar';
 import SimpleChatbot from './components/SimpleChatbot';
@@ -32,10 +32,11 @@ import './styles/professional.css';
 
 function AppContent() {
   const location = useLocation();
+  const theme = useTheme();
   const isAuthPage = location.pathname === '/' || location.pathname === '/signup';
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: theme.colors.background, color: theme.colors.text }}>
       {!isAuthPage && <Navbar />}
       <div style={{ flex: 1 }}>
         <Routes>

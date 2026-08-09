@@ -10,7 +10,7 @@ function PendingConfirmations() {
   const [error, setError] = useState('');
   const [processingId, setProcessingId] = useState(null);
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const theme = useTheme();
   const { addNotification } = useNotifications();
 
   useEffect(() => {
@@ -72,7 +72,7 @@ function PendingConfirmations() {
     padding: '2rem',
     maxWidth: '1200px',
     margin: '0 auto',
-    backgroundColor: theme === 'dark' ? '#1a1a1a' : '#f5f5f5',
+    backgroundColor: theme.colors.background,
     minHeight: '100vh',
   };
 

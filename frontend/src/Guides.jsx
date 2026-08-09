@@ -11,7 +11,7 @@ function Guides() {
   const [connectedGuideIds, setConnectedGuideIds] = useState([]);
   const [connecting, setConnecting] = useState(null);
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const theme = useTheme();
   const { addNotification } = useNotifications();
 
   useEffect(() => {
